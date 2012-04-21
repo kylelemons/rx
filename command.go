@@ -6,10 +6,6 @@ import (
 	"os"
 )
 
-var (
-	rescan = flag.Bool("rescan", false, "Force a rescan of repositories")
-)
-
 type Command struct {
 	// This function is called when the command is invoked
 	Run func(cmd *Command, args ...string)

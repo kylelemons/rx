@@ -23,6 +23,9 @@ func main() {
 		return
 	}
 
+	Load()
+	defer Save()
+
 	sub, args := args[0], args[1:]
 	for _, cmd := range commands {
 		if cmd.Name == sub {
