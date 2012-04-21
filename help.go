@@ -19,7 +19,7 @@ var helpCmd = &Command{
 
 var helpDump = helpCmd.Flag.Bool("godoc", false, "Dump the godoc output for the command(s)")
 
-func helpRun(cmd *Command, args ...string) {
+func helpFunc(cmd *Command, args ...string) {
 	var selected []*Command
 
 	if len(args) > 0 {
@@ -45,7 +45,7 @@ func helpRun(cmd *Command, args ...string) {
 }
 
 func init() {
-	helpCmd.Run = helpRun
+	helpCmd.Run = helpFunc
 }
 
 var usageTemplate = `rx is a command-line dependency management tool for Go projects.

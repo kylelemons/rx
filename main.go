@@ -12,7 +12,7 @@ var commands = []*Command{
 
 func main() {
 	flag.Usage = func() {
-		helpRun(helpCmd)
+		helpFunc(helpCmd)
 	}
 	flag.Parse()
 

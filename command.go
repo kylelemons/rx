@@ -26,7 +26,7 @@ type Command struct {
 
 func (c *Command) Exec(args []string) {
 	c.Flag.Usage = func() {
-		helpRun(c, c.Name)
+		helpFunc(c, c.Name)
 	}
 	c.Flag.Parse(args)
 	c.Run(c, c.Flag.Args()...)
@@ -34,7 +34,7 @@ func (c *Command) Exec(args []string) {
 
 func (c *Command) BadArgs(errFormat string, args ...interface{}) {
 	fmt.Fprintf(stdout, "error: "+errFormat+"\n\n", args...)
-	helpRun(c, c.Name)
+	helpFunc(c, c.Name)
 	os.Exit(1)
 }
 
