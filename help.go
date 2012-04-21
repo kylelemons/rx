@@ -48,10 +48,10 @@ func init() {
 var usageTemplate = `rx is a command-line dependency management tool for Go projects.
 
 Usage:
-  rx <command> [arguments]
+	rx <command> [arguments]
 
 Commands:{{range .}}
-  {{.Name | printf "%-10s"}} {{.Summary}}{{end}}
+	{{.Name | printf "%-10s"}} {{.Summary}}{{end}}
 
 Use "rx help <command>" for more help with a command.
 `
@@ -68,7 +68,7 @@ var docTemplate = `/*
 {{.Summary}}
 
 Usage:
-  rx {{.Usage}}
+	rx {{.Usage}}
 
 {{.Help}}{{end}}
 */

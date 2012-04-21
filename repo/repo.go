@@ -1,8 +1,10 @@
-package main
+package repo
 
 import (
 	"os/exec"
 	"strings"
+
+	"github.com/kylelemons/rx/vcs"
 )
 
 // A Repository is a directory 
@@ -39,8 +41,8 @@ func (p *Package) Keep() bool {
 // longer root path is chosen.  If more than one have identical length paths,
 // the result is undefined.
 func (p *Package) DetectVCS() (vcsFound, root string) {
-	for name, vcs := range KnownVCS {
-		cmd := exec.Command(vcs.Command, vcs.RootCmd...)
+	for name, tool := range vcs.Known {
+		cmd := exec.Command(tool.Command, tool.RootCmd...)
 		cmd.Dir = p.Dir
 		b, err := cmd.Output()
 		if err != nil {
@@ -52,10 +54,3 @@ func (p *Package) DetectVCS() (vcsFound, root string) {
 	}
 	return vcsFound, root
 }
-
-var repoTemplate = `{{range .}}Repository ({{.VCS}}) {{printf "%q" .Path}}:
-	Dependencies:{{range .RepoDeps}}
-		{{.}}{{end}}
-	Packages:{{range .Packages}}
-		{{.ImportPath}}{{end}}
-{{end}}`

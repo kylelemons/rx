@@ -1,16 +1,16 @@
-package main
+package vcs
 
-type VCS struct {
+type Tool struct {
 	Command string
 	RootCmd []string
 }
 
-var KnownVCS = map[string]*VCS{
-	"git": &VCS{
+var Known = map[string]*Tool{
+	"git": {
 		Command: "git",
 		RootCmd: []string{"rev-parse", "--show-toplevel"},
 	},
-	"hg": &VCS{
+	"hg": {
 		Command: "hg",
 		RootCmd: []string{"root"},
 	},

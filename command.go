@@ -47,7 +47,11 @@ func (c *Command) FlagDump(indent int) string {
 	prefix := strings.Repeat(" ", indent)
 	w := tabwriter.NewWriter(b, 0, 0, 1, ' ', 0)
 	c.Flag.VisitAll(func(f *flag.Flag){
-		fmt.Fprintf(w, "%s--%s\t=\t%v\t   %s\n", prefix, f.Name, f.DefValue, f.Usage)
+		dash := "--"
+		if len(f.Name) == 1 {
+			dash = "-"
+		}
+		fmt.Fprintf(w, "%s%s%s\t=\t%#v\t   %s\n", prefix, dash, f.Name, f.DefValue, f.Usage)
 	})
 	w.Flush()
 	if b.Len() == 0 {
