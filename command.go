@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"bytes"
 	"strings"
 	"text/tabwriter"
@@ -30,6 +31,17 @@ func (c *Command) Exec(args []string) {
 	c.Run(c, c.Flag.Args()...)
 }
 
+func (c *Command) BadArgs(errFormat string, args ...interface{}) {
+	fmt.Fprintf(stdout, "error: " + errFormat + "\n\n", args...)
+	helpRun(c, c.Name)
+	os.Exit(1)
+}
+
+func (c *Command) Fatalf(errFormat string, args ...interface{}) {
+	fmt.Fprintf(stdout, c.Name + ": error: " + errFormat, args...)
+	os.Exit(1)
+}
+
 func (c *Command) FlagDump(indent int) string {
 	b := new(bytes.Buffer)
 	prefix := strings.Repeat(" ", indent)
@@ -38,5 +50,8 @@ func (c *Command) FlagDump(indent int) string {
 		fmt.Fprintf(w, "%s--%s\t=\t%v\t   %s\n", prefix, f.Name, f.DefValue, f.Usage)
 	})
 	w.Flush()
-	return b.String()
+	if b.Len() == 0 {
+		return ""
+	}
+	return fmt.Sprintf("\nOptions:\n%s", b)
 }

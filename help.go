@@ -30,14 +30,14 @@ func helpRun(cmd *Command, args ...string) {
 
 	switch {
 	case *helpDump:
-		exec(stdout, docTemplate, commands)
+		render(stdout, docTemplate, commands)
 	case len(selected) < len(args):
 		fmt.Fprintf(stdout, "error: unknown command %q\n", args[0])
-		exec(stdout, helpTemplate, helpCmd)
+		render(stdout, helpTemplate, helpCmd)
 	case len(selected) == 0:
-		exec(stdout, usageTemplate, commands)
+		render(stdout, usageTemplate, commands)
 	case len(selected) == 1:
-		exec(stdout, helpTemplate, selected[0])
+		render(stdout, helpTemplate, selected[0])
 	}
 }
 
@@ -57,16 +57,13 @@ Use "rx help <command>" for more help with a command.
 `
 
 var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
-
-Options:
 {{.FlagDump 2}}
-
 {{.Summary}}
 {{.Help}}
 `
 
 var docTemplate = `/*
-{{range .}}Command: rx {{.name}}
+{{range .}}Command: rx {{.Name}}
 
 {{.Summary}}
 
@@ -79,7 +76,7 @@ package documentation
 `
 
 var stdout io.Writer = os.Stdout
-func exec(w io.Writer, tpl string, data interface{}) {
+func render(w io.Writer, tpl string, data interface{}) {
 	if err := template.Must(template.New("help").Parse(tpl)).Execute(w, data); err != nil {
 		panic(err)
 	}
