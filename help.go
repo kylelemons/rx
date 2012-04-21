@@ -13,7 +13,7 @@ import (
 
 var helpCmd = &Command{
 	Name:    "help",
-	Usage:   "[command]",
+	Usage:   "[<command>]",
 	Summary: "Help on the rx command and subcommands.",
 }
 
@@ -48,16 +48,18 @@ func init() {
 	helpCmd.Run = helpFunc
 }
 
-var usageTemplate = `rx is a command-line dependency management tool for Go projects.
-
-Usage:
-	rx <command> [arguments]
+var generalHelp = `	rx [<options>] [<subcommand> [<suboptions>] [<arguments> ...]]
 {{flags 2}}
 Commands:{{range .}}
 	{{.Name | printf "%-10s"}} {{.Summary}}{{end}}
 
 Use "rx help <command>" for more help with a command.
 `
+
+var usageTemplate = `rx is a command-line dependency management tool for Go projects.
+
+Usage:
+` + generalHelp
 
 var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
 {{flags 2 .}}
@@ -76,8 +78,8 @@ The rx command is composed of numerous sub-commands.
 Sub-commands can be abbreviated to any unique prefix on the command-line.
 The general usage is:
 
-  rx [rx args] [command] [command args]
-{{flags 2}}
+` + generalHelp + `
+
 See below for a description of the various sub-commands understood by rx.
 
 {{range .}}{{.Name | title}}

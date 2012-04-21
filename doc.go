@@ -8,11 +8,20 @@ The rx command is composed of numerous sub-commands.
 Sub-commands can be abbreviated to any unique prefix on the command-line.
 The general usage is:
 
-  rx [rx args] [command] [command args]
+    rx [<options>] [<subcommand> [<suboptions>] [<arguments> ...]]
 
 Options:
   --rescan = false        Force a rescan of repositories
   --rxdir  = $HOME/.rx    Directory in which to save state
+
+Commands:
+    help       Help on the rx command and subcommands.
+    list       List recognized repositories.
+    tags       List known repository tags.
+    prescribe  Update the repository to the given tag/rev.
+
+Use "rx help <command>" for more help with a command.
+
 
 See below for a description of the various sub-commands understood by rx.
 
@@ -21,7 +30,7 @@ Help Command
 Help on the rx command and subcommands.
 
 Usage:
-    rx help [command]
+    rx help [<command>]
 
 Options:
   --godoc = false    Dump the godoc output for the command(s)
@@ -62,7 +71,7 @@ Tags Command
 List known repository tags.
 
 Usage:
-    rx tags repo
+    rx tags <repo>
 
 Options:
   --down = false    Only show downgrades
@@ -71,7 +80,7 @@ Options:
   --up   = false    Only show updates (overrides --down)
 
 The tags command scans the specified repository and lists
-information about its tags.  The [repo] can be the suffix of the repository
+information about its tags.  The <repo> can be the suffix of the repository
 root path, as long as it is unique.
 
 The -f option takes a template as a format.  The data passed into the
@@ -84,7 +93,7 @@ Prescribe Command
 Update the repository to the given tag/rev.
 
 Usage:
-    rx prescribe repo tag
+    rx prescribe <repo> <tag>
 
 Options:
   --build   = true    build all updated packages
@@ -92,8 +101,8 @@ Options:
   --test    = true    test all updated packages
 
 The prescribe command updates the repository to the named tag or
-revision.  The [repo] can be the suffix of the repository root path,
-as long as it is unique.  The [tag] is anything understood by the
+revision.  The <repo> can be the suffix of the repository root path,
+as long as it is unique.  The <tag> is anything understood by the
 underlying version control system as a commit, usually a tag, branch,
 or commit.
 

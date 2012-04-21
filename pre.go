@@ -10,11 +10,11 @@ import (
 
 var preCmd = &Command{
 	Name:    "prescribe",
-	Usage:   "repo tag",
+	Usage:   "<repo> <tag>",
 	Summary: "Update the repository to the given tag/rev.",
 	Help: `The prescribe command updates the repository to the named tag or
-revision.  The [repo] can be the suffix of the repository root path,
-as long as it is unique.  The [tag] is anything understood by the
+revision.  The <repo> can be the suffix of the repository root path,
+as long as it is unique.  The <tag> is anything understood by the
 underlying version control system as a commit, usually a tag, branch,
 or commit.
 
