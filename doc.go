@@ -64,7 +64,7 @@ If you specify --long, the format will be:
           {{.}}{{end}}
       Packages:{{range .Packages}}
           {{.ImportPath}}{{end}}
-  
+
   {{end}}
 Tags Command
 

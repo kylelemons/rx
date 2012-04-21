@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os/exec"
 	"sort"
 )
@@ -35,8 +36,10 @@ func Scan() (RepoMap, error) {
 
 		// Only save packages we want to keep
 		if !pkg.Keep() {
+			log.Printf("Skipping %q", pkg.ImportPath)
 			continue
 		}
+		log.Printf("Adding %q", pkg.ImportPath)
 
 		// Detect the version control system
 		vcs, root := pkg.DetectVCS()
@@ -69,6 +72,12 @@ func Scan() (RepoMap, error) {
 					deps[depRepo] = true
 				}
 			}
+			for _, dep := range pkg.TestImports {
+				if depRepo, ok := pkgRoot[dep]; ok {
+					deps[depRepo] = true
+				}
+			}
+			// TODO(kevlar): XTestImports?
 		}
 		for dep := range deps {
 			r.RepoDeps = append(r.RepoDeps, dep)

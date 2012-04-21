@@ -114,17 +114,27 @@ func (r *Repository) revTags(tool *vcs.Tool, rev string, command []string, regex
 }
 
 // Package is a subset of cmd/go.Package
+// Parsed from `go list`
 type Package struct {
-	// Parsed from `go list`
-	Dir        string   // directory containing package sources
-	ImportPath string   // import path of package in dir
-	Name       string   // package name
-	Target     string   // install path
-	Goroot     bool     // is this package in the Go root?
-	Standard   bool     // is this package part of the standard Go library?
-	Root       string   // Go root or Go path dir containing this package
-	Imports    []string // import paths used by this package
-	Incomplete bool     // this package or a dependency has an error
+	// General
+	Dir        string // directory containing package sources
+	ImportPath string // import path of package in dir
+	Name       string // package name
+	Target     string // install path
+	Goroot     bool   // is this package in the Go root?
+	Standard   bool   // is this package part of the standard Go library?
+	Root       string // Go root or Go path dir containing this package
+	Incomplete bool   // this package or a dependency has an error
+
+	// Package files
+	GoFiles      []string // .go files
+	TestGoFiles  []string // _test.go files
+	XTestGoFiles []string
+
+	// Package imports
+	Imports      []string // import paths used by this package
+	TestImports  []string // import paths used by _test.go files in this package
+	XTestImports []string
 }
 
 // Keep returns true if the package should be processed by rx.  Packages are
@@ -132,6 +142,19 @@ type Package struct {
 // an error when processing them.
 func (p *Package) Keep() bool {
 	return !p.Goroot && !p.Standard && !p.Incomplete
+}
+
+// IsBinary returns true if the package is a binary.
+// A package is a binary iff the name of the package is "main".
+func (p *Package) IsBinary() bool {
+	return p.Name == "main"
+}
+
+// IsTestable returns true if the package is testable.
+// A package is testable iff there are one or more _test.go files.
+func (p *Package) IsTestable() bool {
+	// TODO(kevlar): XTestGoFiles ?
+	return len(p.TestGoFiles) > 0
 }
 
 // DetectVCS attempts to detect which version control system is hosting the

@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -32,8 +33,10 @@ func Load() {
 	repoFile := filepath.Join(*rxDir, "repos")
 	repo, err := os.Open(repoFile)
 	if err != nil {
+		log.Printf("Skipping load: ", err)
 		return
 	}
+	log.Printf("Loading repos from %q...", repoFile)
 	if err := gob.NewDecoder(repo).Decode(&Repos); err != nil {
 		fmt.Fprintf(stdout, "rx: error loading repos: %s", err)
 		os.Remove(repoFile)
@@ -56,6 +59,7 @@ func Save() {
 		fmt.Fprintf(stdout, "rx: error opening .rx/repo file: %s", err)
 		os.Exit(1)
 	}
+	log.Printf("Saving repos to %q...", repoFile)
 	if err := gob.NewEncoder(repo).Encode(Repos); err != nil {
 		fmt.Fprintf(stdout, "rx: error encoding repos: %s", err)
 		os.Exit(1)

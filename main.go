@@ -3,8 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"strings"
+)
+
+var (
+	verbose = flag.Bool("v", false, "Turn on verbose logging")
 )
 
 var commands = []*Command{
@@ -24,6 +30,10 @@ func main() {
 	if len(args) == 0 {
 		flag.Usage()
 		return
+	}
+
+	if !*verbose {
+		log.SetOutput(ioutil.Discard)
 	}
 
 	Load()

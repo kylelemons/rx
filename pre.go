@@ -1,9 +1,10 @@
 package main
 
 import (
+	"log"
 	"os"
-	"strings"
 	"os/exec"
+	"strings"
 
 	"github.com/kylelemons/rx/repo"
 )
@@ -20,14 +21,18 @@ or commit.
 
 After updating, prescribe will test, build, and the install each package
 in the updated repository.  These steps can be disabled via flags such as
-"rx prescribe --test=false repo tag".  If a step is disabled, the next
-steps will be disabled as well.`,
+"rx prescribe --test=false repo tag".
+
+By default, this will not link and install affected binaries; to turn this
+behavior on, see the --link option.`,
 }
 
 var (
-	preTest  = preCmd.Flag.Bool("test", true, "test all updated packages")
 	preBuild = preCmd.Flag.Bool("build", true, "build all updated packages")
+	preLink  = preCmd.Flag.Bool("link", false, "link and install all updated binaries")
+	preTest  = preCmd.Flag.Bool("test", true, "test all updated packages")
 	preInst  = preCmd.Flag.Bool("install", true, "install all updated packages")
+	preCasc  = preCmd.Flag.Bool("cascade", true, "recursively process depending packages too")
 )
 
 func preFunc(cmd *Command, args ...string) {
@@ -60,48 +65,106 @@ func preFunc(cmd *Command, args ...string) {
 	if err != nil {
 		cmd.Fatalf("failure to determine head: %s", err)
 	}
-	// TODO(kevlar): defer a fallback
+	defer func() {
+		if fallback != "" {
+			rep.ToRev(fallback)
+		}
+	}()
 
 	if err := rep.ToRev(repoTag); err != nil {
 		cmd.Fatalf("failure to change rev to %q: %s", repoTag, err)
 	}
 
-	do := func(subCmd string) error {
-		for _, pkg := range rep.Packages {
-			cmd := exec.Command("go", "build", pkg.ImportPath)
+	do := func(r *repo.Repository, subCmd string) error {
+		for _, pkg := range r.Packages {
+			switch subCmd {
+			case "test":
+				if !pkg.IsTestable() {
+					continue
+				}
+				// Install dependencies so we don't get complaints
+				if *preInst {
+					exec.Command("go", "test", "-i", pkg.ImportPath)
+				}
+			case "install":
+				if !*preLink && pkg.IsBinary() {
+					continue
+				}
+			}
+			log.Printf("   - %s", pkg.ImportPath)
+			cmd := exec.Command("go", subCmd, pkg.ImportPath)
 			cmd.Dir = os.TempDir()
-			cmd.Stdout = stdout
-			cmd.Stderr = stdout
-			if err != nil {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
 
-	if !*preBuild {
-		return
-	}
-	if err := do("build"); err != nil {
-		rep.ToRev(fallback)
-		cmd.Fatalf("build failed")
+	rebuilt := map[*repo.Repository]bool{}
+	process := func(r *repo.Repository) {
+		log.Printf("Processing repo in %q...", r.Path)
+		if *preBuild {
+			log.Printf(" - Build")
+			if err := do(r, "build"); err != nil {
+				cmd.Fatalf("build failed: %q on %q broke %q",
+					repoTag, rep.Path, r.Path)
+			}
+		}
+
+		if *preTest {
+			log.Printf(" - Test")
+			if err := do(r, "test"); err != nil {
+				cmd.Fatalf("test failed: %q on %q broke %q: %s",
+					repoTag, rep.Path, r.Path, err)
+			}
+		}
+
+		if *preInst {
+			log.Printf(" - Install")
+			if err := do(r, "install"); err != nil {
+				cmd.Fatalf("install failed: %q on %q broke %q",
+					repoTag, rep.Path, r.Path)
+			}
+		}
+
+		if *preCasc {
+			log.Printf(" - Cascade")
+			for _, check := range Repos {
+				// Don't check repos we've already rebuilt
+				if _, ok := rebuilt[check]; ok {
+					continue
+				}
+				for _, dep := range check.RepoDeps {
+					// If repo `check` depends on the current repo `r`
+					if dep == r.Path {
+						// rebuild it
+						log.Printf("   - Repository %q", check.Path)
+						rebuilt[check] = false
+						break
+					}
+				}
+			}
+		}
 	}
 
-	if !*preTest {
-		return
-	}
-	if err := do("test"); err != nil {
-		rep.ToRev(fallback)
-		cmd.Fatalf("test failed")
+	cascade := true
+	rebuilt[rep] = false
+
+	for cascade {
+		cascade = false
+		for rep, processed := range rebuilt {
+			if !processed {
+				cascade = true
+				rebuilt[rep] = true
+				process(rep)
+			}
+		}
 	}
 
-	if !*preInst {
-		return
-	}
-	if err := do("install"); err != nil {
-		rep.ToRev(fallback)
-		cmd.Fatalf("install failed")
-	}
+	fallback = ""
 }
 
 func init() {

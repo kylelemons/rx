@@ -25,16 +25,33 @@ func (c *Command) Exec(args []string) {
 		helpFunc(c, c.Name)
 	}
 	c.Flag.Parse(args)
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(fatal); ok {
+				os.Exit(1)
+			}
+			panic(r)
+		}
+	}()
 	c.Run(c, c.Flag.Args()...)
 }
 
 func (c *Command) BadArgs(errFormat string, args ...interface{}) {
 	fmt.Fprintf(stdout, "error: "+errFormat+"\n\n", args...)
 	helpFunc(c, c.Name)
-	os.Exit(1)
+	panic(fatal{})
 }
 
-func (c *Command) Fatalf(errFormat string, args ...interface{}) {
+// Errorf prints out a formatted error with the right prefixes.
+func (c *Command) Errorf(errFormat string, args ...interface{}) {
 	fmt.Fprintf(stdout, c.Name+": error: "+errFormat+"\n", args...)
-	os.Exit(1)
 }
+
+// Fatalf is like Errorf except the stack unwinds up to the Exec call before
+// exiting the application with status code 1.
+func (c *Command) Fatalf(errFormat string, args ...interface{}) {
+	c.Errorf(errFormat, args...)
+	panic(fatal{})
+}
+
+type fatal struct{}
