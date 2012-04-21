@@ -1,8 +1,12 @@
 package repo
 
 import (
+	"bytes"
 	"os/exec"
 	"strings"
+	"fmt"
+	"regexp"
+	"text/template"
 
 	"github.com/kylelemons/rx/vcs"
 )
@@ -13,6 +17,41 @@ type Repository struct {
 	VCS      string     // Version control system
 	Packages []*Package // packages contained in this repository
 	RepoDeps []string   // repositories (by path) that packages
+}
+
+func (r *Repository) Tags() (TagList, error) {
+	tool, ok := vcs.Known[r.VCS]
+	if !ok {
+		return nil, fmt.Errorf("repo: unknown vcs %q", r.VCS)
+	}
+	cmd := exec.Command(tool.Command)
+	cmd.Dir = r.Path
+	for _, arg := range tool.TagList {
+		cmd.Args = append(cmd.Args, tsub(arg, tool.HeadRev))
+	}
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("repo: list tags: %s", err)
+	}
+	reg := regexp.MustCompile(tool.TagListRegex)
+	word := regexp.MustCompile(`[^, ]+`)
+	var tags TagList
+	for _, line := range strings.Split(string(out), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+		match := reg.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+		for _, tagName := range word.FindAllString(match[2], -1) {
+			tags = append(tags, Tag{
+				Name: tagName,
+				Rev:  match[1],
+			})
+		}
+	}
+	return tags, nil
 }
 
 // Package is a subset of cmd/go.Package
@@ -42,7 +81,7 @@ func (p *Package) Keep() bool {
 // the result is undefined.
 func (p *Package) DetectVCS() (vcsFound, root string) {
 	for name, tool := range vcs.Known {
-		cmd := exec.Command(tool.Command, tool.RootCmd...)
+		cmd := exec.Command(tool.Command, tool.RootDir...)
 		cmd.Dir = p.Dir
 		b, err := cmd.Output()
 		if err != nil {
@@ -53,4 +92,13 @@ func (p *Package) DetectVCS() (vcsFound, root string) {
 		}
 	}
 	return vcsFound, root
+}
+
+func tsub(tpl string, data interface{}) string {
+	b := new(bytes.Buffer)
+	t := template.New("help")
+	if err := template.Must(t.Parse(tpl)).Execute(b, data); err != nil {
+		panic(err)
+	}
+	return b.String()
 }

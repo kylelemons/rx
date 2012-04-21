@@ -8,6 +8,7 @@ import (
 var commands = []*Command{
 	helpCmd,
 	listCmd,
+	tagsCmd,
 }
 
 func main() {

@@ -39,6 +39,6 @@ func (c *Command) BadArgs(errFormat string, args ...interface{}) {
 }
 
 func (c *Command) Fatalf(errFormat string, args ...interface{}) {
-	fmt.Fprintf(stdout, c.Name+": error: "+errFormat, args...)
+	fmt.Fprintf(stdout, c.Name+": error: "+errFormat+"\n", args...)
 	os.Exit(1)
 }
