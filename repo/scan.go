@@ -1,11 +1,11 @@
 package repo
 
 import (
-	"fmt"
-	"encoding/json"
 	"bytes"
-	"os/exec"
+	"encoding/json"
+	"fmt"
 	"io"
+	"os/exec"
 	"sort"
 )
 
@@ -56,8 +56,8 @@ func Scan() (RepoMap, error) {
 	// Create the repositories
 	for path := range repoVCS {
 		r := &Repository{
-			Path: path,
-			VCS:  repoVCS[path],
+			Path:     path,
+			VCS:      repoVCS[path],
 			Packages: repoPkgs[path],
 		}
 

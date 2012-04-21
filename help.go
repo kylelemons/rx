@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -9,8 +10,8 @@ import (
 )
 
 var helpCmd = &Command{
-	Name: "help",
-	Usage: "[command]",
+	Name:    "help",
+	Usage:   "[command]",
 	Summary: "Help on the rx command and subcommands",
 }
 
@@ -75,7 +76,15 @@ Usage:
 package documentation
 `
 
-var stdout io.Writer = os.Stdout
+var stdout io.Writer = tabConverter{os.Stdout}
+
+type tabConverter struct{ io.Writer }
+
+func (t tabConverter) Write(p []byte) (int, error) {
+	p = bytes.Replace(p, []byte{'\t'}, []byte{' ', ' ', ' ', ' '}, -1)
+	return t.Writer.Write(p)
+}
+
 func render(w io.Writer, tpl string, data interface{}) {
 	if err := template.Must(template.New("help").Parse(tpl)).Execute(w, data); err != nil {
 		panic(err)

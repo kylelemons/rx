@@ -1,13 +1,13 @@
 package main
 
 import (
-	"testing"
 	"bytes"
 	"regexp"
+	"testing"
 )
 
 func TestHelp(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		Desc  string
 		Args  []string
 		Regex []string

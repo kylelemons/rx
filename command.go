@@ -1,17 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"flag"
 	"fmt"
 	"os"
-	"bytes"
 	"strings"
 	"text/tabwriter"
-	"flag"
 )
 
 type Command struct {
 	// This function is called when the command is invoked
-	Run   func(cmd *Command, args ...string)
+	Run func(cmd *Command, args ...string)
 
 	// Command-line flags
 	Flag flag.FlagSet
@@ -32,13 +32,13 @@ func (c *Command) Exec(args []string) {
 }
 
 func (c *Command) BadArgs(errFormat string, args ...interface{}) {
-	fmt.Fprintf(stdout, "error: " + errFormat + "\n\n", args...)
+	fmt.Fprintf(stdout, "error: "+errFormat+"\n\n", args...)
 	helpRun(c, c.Name)
 	os.Exit(1)
 }
 
 func (c *Command) Fatalf(errFormat string, args ...interface{}) {
-	fmt.Fprintf(stdout, c.Name + ": error: " + errFormat, args...)
+	fmt.Fprintf(stdout, c.Name+": error: "+errFormat, args...)
 	os.Exit(1)
 }
 
@@ -46,7 +46,7 @@ func (c *Command) FlagDump(indent int) string {
 	b := new(bytes.Buffer)
 	prefix := strings.Repeat(" ", indent)
 	w := tabwriter.NewWriter(b, 0, 0, 1, ' ', 0)
-	c.Flag.VisitAll(func(f *flag.Flag){
+	c.Flag.VisitAll(func(f *flag.Flag) {
 		dash := "--"
 		if len(f.Name) == 1 {
 			dash = "-"
