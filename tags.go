@@ -17,16 +17,14 @@ root path, as long as it is unique.
 The -f option takes a template as a format.  The data passed into the
 template invocation is an (rx/repo) TagList, and the default format is:
 
-` + ind2sp(tagsTemplate) + `
-
-If you specify --long, the format will be:
-
-` + ind2sp(tagsTemplateLong),
+` + ind2sp(tagsTemplate),
 }
 
 var (
 	tagsFormat = tagsCmd.Flag.String("f", "", "tags output format")
 	tagsLong = tagsCmd.Flag.Bool("long", false, "Use long output format")
+	tagsUp   = tagsCmd.Flag.Bool("up", false, "Only show updates (overrides --down)")
+	tagsDown = tagsCmd.Flag.Bool("down", false, "Only show downgrades")
 )
 
 func tagsFunc(cmd *Command, args ...string) {
@@ -52,7 +50,14 @@ func tagsFunc(cmd *Command, args ...string) {
 			}
 
 			var err error
-			tags, err = repo.Tags()
+			switch {
+			case *tagsUp:
+				tags, err = repo.Upgrades()
+			case *tagsDown:
+				tags, err = repo.Downgrades()
+			default:
+				tags, err = repo.Tags()
+			}
 			if err != nil {
 				cmd.Fatalf("list tags for %q: %s", path, err)
 			}
@@ -65,8 +70,6 @@ func tagsFunc(cmd *Command, args ...string) {
 	switch {
 	case *tagsFormat != "":
 		render(stdout, *tagsFormat, tags)
-	case *tagsLong:
-		render(stdout, tagsTemplateLong, tags)
 	default:
 		render(stdout, tagsTemplate, tags)
 	}
@@ -79,6 +82,4 @@ func init() {
 var (
 	tagsTemplate = `{{range .}}{{.Rev}} {{.Name}}
 {{end}}`
-
-	tagsTemplateLong =``
 )

@@ -24,16 +24,44 @@ func (r *Repository) Tags() (TagList, error) {
 	if !ok {
 		return nil, fmt.Errorf("repo: unknown vcs %q", r.VCS)
 	}
+	up, err := r.revTags(tool, tool.HeadRev, tool.Updates, tool.UpdatesRegex)
+	if err != nil {
+		return nil, err
+	}
+	down, err := r.revTags(tool, tool.HeadRev, tool.TagList, tool.TagListRegex)
+	if err != nil {
+		return nil, err
+	}
+	return append(up, down...), nil
+}
+
+func (r *Repository) Upgrades() (TagList, error) {
+	tool, ok := vcs.Known[r.VCS]
+	if !ok {
+		return nil, fmt.Errorf("repo: unknown vcs %q", r.VCS)
+	}
+	return r.revTags(tool, tool.HeadRev, tool.Updates, tool.UpdatesRegex)
+}
+
+func (r *Repository) Downgrades() (TagList, error) {
+	tool, ok := vcs.Known[r.VCS]
+	if !ok {
+		return nil, fmt.Errorf("repo: unknown vcs %q", r.VCS)
+	}
+	return r.revTags(tool, tool.HeadRev, tool.TagList, tool.TagListRegex)
+}
+
+func (r *Repository) revTags(tool *vcs.Tool, rev string, command []string, regex string) (TagList, error) {
 	cmd := exec.Command(tool.Command)
 	cmd.Dir = r.Path
-	for _, arg := range tool.TagList {
-		cmd.Args = append(cmd.Args, tsub(arg, tool.HeadRev))
+	for _, arg := range command {
+		cmd.Args = append(cmd.Args, tsub(arg, rev))
 	}
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("repo: list tags: %s", err)
 	}
-	reg := regexp.MustCompile(tool.TagListRegex)
+	reg := regexp.MustCompile(regex)
 	word := regexp.MustCompile(`[^, ]+`)
 	var tags TagList
 	for _, line := range strings.Split(string(out), "\n") {

@@ -15,6 +15,11 @@ type Tool struct {
 	// separated list of tags in $2.
 	TagList      []string // {{.}} == revision
 	TagListRegex string
+
+	// This command is identical to TagList except it lists tags
+	// for which the given revision is an ancestor.
+	Updates      []string // {{.}} == revision
+	UpdatesRegex string
 }
 
 var Known = map[string]*Tool{
@@ -24,16 +29,20 @@ var Known = map[string]*Tool{
 		// Commands
 		RootDir: []string{"rev-parse", "--show-toplevel"},
 		TagList: []string{"log", "--pretty=format:%H%d", "{{.}}"},
+		Updates: []string{"log", "--pretty=format:%H%d", "--all", "^{{.}}"},
 		// Regexes
 		TagListRegex: `^([a-z0-9]+) \((.*)\)`,
+		UpdatesRegex: `^([a-z0-9]+) \((.*)\)`,
 	},
 	"hg": {
 		Command: "hg",
 		HeadRev: ".",
 		// Commands
 		RootDir: []string{"root"},
-		TagList: []string{"log", "--rev=ancestors({{.}}) and tag()", "--template={node} {tags}\n"},
+		TagList: []string{"log", "--template={node} {tags}\n", "--rev=reverse(ancestors({{.}}))   and branch({{.}}) and tag()"},
+		Updates: []string{"log", "--template={node} {tags}\n", "--rev=reverse(descendants({{.}})) and branch({{.}}) and tag() and not {{.}}"},
 		// Regexes
 		TagListRegex: `^([a-z0-9]+) (.*)`,
+		UpdatesRegex: `^([a-z0-9]+) (.*)`,
 	},
 }
