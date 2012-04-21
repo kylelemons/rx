@@ -15,24 +15,24 @@ func TestHelp(t *testing.T) {
 		{
 			Desc: "Usage",
 			Regex: []string{
-				"^rx is a command",
-				"  help.*Help on the rx",
+				`^rx is a command`,
+				`\shelp.*Help on the rx`,
 			},
 		},
 		{
 			Desc: "No Command",
 			Args: []string{"frobber"},
 			Regex: []string{
-				"error: unknown.*frobber",
+				`error: unknown.*frobber`,
 			},
 		},
 		{
 			Desc: "Help help",
 			Args: []string{"help"},
 			Regex: []string{
-				"[options] [command]",
-				"rx.*subcommand",
-				"--godoc",
+				`[options] [command]`,
+				`rx.*subcommand`,
+				`--godoc`,
 			},
 		},
 	}
