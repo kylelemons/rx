@@ -2,10 +2,10 @@ package repo
 
 import (
 	"bytes"
-	"os/exec"
-	"strings"
 	"fmt"
+	"os/exec"
 	"regexp"
+	"strings"
 	"text/template"
 
 	"github.com/kylelemons/rx/vcs"

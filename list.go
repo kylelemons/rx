@@ -23,7 +23,7 @@ If you specify --long, the format will be:
 
 var (
 	listFormat = listCmd.Flag.String("f", "", "List output format")
-	listLong = listCmd.Flag.Bool("long", false, "Use long output format")
+	listLong   = listCmd.Flag.Bool("long", false, "Use long output format")
 )
 
 func listFunc(cmd *Command, args ...string) {
@@ -58,7 +58,7 @@ var (
 	listTemplate = `{{range .}}{{.Path}}:{{range .Packages}} {{.Name}}{{end}}
 {{end}}`
 
-	listTemplateLong =`{{range .}}Repository ({{.VCS}}) {{printf "%q" .Path}}:
+	listTemplateLong = `{{range .}}Repository ({{.VCS}}) {{printf "%q" .Path}}:
 	Dependencies:{{range .RepoDeps}}
 		{{.}}{{end}}
 	Packages:{{range .Packages}}

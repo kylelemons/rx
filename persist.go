@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"flag"
 	"encoding/gob"
+	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -44,7 +44,7 @@ func Save() {
 	if Repos == nil {
 		return
 	}
-	
+
 	if err := os.MkdirAll(*rxDir, 0750); err != nil {
 		fmt.Fprintf(stdout, "rx: unable to create rxdir: %s", err)
 		os.Exit(1)

@@ -22,9 +22,9 @@ template invocation is an (rx/repo) TagList, and the default format is:
 
 var (
 	tagsFormat = tagsCmd.Flag.String("f", "", "tags output format")
-	tagsLong = tagsCmd.Flag.Bool("long", false, "Use long output format")
-	tagsUp   = tagsCmd.Flag.Bool("up", false, "Only show updates (overrides --down)")
-	tagsDown = tagsCmd.Flag.Bool("down", false, "Only show downgrades")
+	tagsLong   = tagsCmd.Flag.Bool("long", false, "Use long output format")
+	tagsUp     = tagsCmd.Flag.Bool("up", false, "Only show updates (overrides --down)")
+	tagsDown   = tagsCmd.Flag.Bool("down", false, "Only show downgrades")
 )
 
 func tagsFunc(cmd *Command, args ...string) {

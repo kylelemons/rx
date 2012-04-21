@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 )
 
