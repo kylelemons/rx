@@ -19,6 +19,37 @@ type Repository struct {
 	RepoDeps []string   // repositories (by path) that packages
 }
 
+func (r *Repository) Head() (string, error) {
+	tool, ok := vcs.Known[r.VCS]
+	if !ok {
+		return "", fmt.Errorf("repo: unknown vcs %q", r.VCS)
+	}
+	cmd := exec.Command(tool.Command, tool.Current...)
+	cmd.Dir = r.Path
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("repo: head: %s", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+func (r *Repository) ToRev(rev string) error {
+	// TODO(kevlar): This is getting repetitive...
+	tool, ok := vcs.Known[r.VCS]
+	if !ok {
+		return fmt.Errorf("repo: unknown vcs %q", r.VCS)
+	}
+	cmd := exec.Command(tool.Command)
+	cmd.Dir = r.Path
+	for _, arg := range tool.ToRev {
+		cmd.Args = append(cmd.Args, tsub(arg, rev))
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("repo: to rev %q: %s", rev, err)
+	}
+	return nil
+}
+
 func (r *Repository) Tags() (TagList, error) {
 	tool, ok := vcs.Known[r.VCS]
 	if !ok {

@@ -62,7 +62,8 @@ Use "rx help <command>" for more help with a command.
 var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
 {{flags 2 .}}
 {{.Summary}}
-{{.Help}}
+{{if .Help}}
+{{.Help}}{{end}}
 `
 
 var docTemplate = `/*

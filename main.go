@@ -11,6 +11,7 @@ var commands = []*Command{
 	helpCmd,
 	listCmd,
 	tagsCmd,
+	preCmd,
 }
 
 func main() {
@@ -39,6 +40,7 @@ func main() {
 			found = cmd
 		}
 	}
+	// TODO(kevlar): automatically Scan; everything needs it
 	if found == nil {
 		fmt.Fprintf(stdout, "error: unknown command %q\n\n", sub)
 		flag.Usage()
