@@ -14,7 +14,7 @@ import (
 var helpCmd = &Command{
 	Name:    "help",
 	Usage:   "[command]",
-	Summary: "Help on the rx command and subcommands",
+	Summary: "Help on the rx command and subcommands.",
 }
 
 var helpDump = helpCmd.Flag.Bool("godoc", false, "Dump the godoc output for the command(s)")
@@ -67,16 +67,30 @@ var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
 `
 
 var docTemplate = `/*
-{{range .}}Command: rx {{.Name}}
+The rx command is a dependency and version management system for Go projects.
+It is built on top of the go tool and utilizes the $GOPATH convention.
 
-{{.Summary}}
+General Usage
+
+The rx command is composed of numerous sub-commands.
+Sub-commands can be abbreviated to any unique prefix on the command-line.
+The general usage is:
+
+  rx [rx args] [command] [command args]
+{{flags 2}}
+See below for a description of the various sub-commands understood by rx.
+
+{{range .}}{{.Name | title}}
+
+{{.Summary | trim}}
 
 Usage:
-	rx {{.Usage}}
-
-{{.Help}}{{end}}
+	rx {{.Name}} {{.Usage | trim}}
+{{flags 2 .}}
+{{.Help | trim}}
+{{end}}
 */
-package documentation
+package main
 `
 
 var templateFuncs = template.FuncMap{
@@ -89,7 +103,13 @@ var templateFuncs = template.FuncMap{
 			if len(f.Name) == 1 {
 				dash = "-"
 			}
-			fmt.Fprintf(w, "%s%s%s\t=\t%#v\t   %s\n", prefix, dash, f.Name, f.DefValue, f.Usage)
+			eq := "= " + f.DefValue
+			if f.DefValue == "" {
+				eq = ""
+			} else if f.Name == "rxdir" {
+				eq = "= $HOME/.rx"
+			}
+			fmt.Fprintf(w, "%s%s%s\t%s\t   %s\n", prefix, dash, f.Name, eq, f.Usage)
 		}
 		if len(args) == 0 {
 			flag.VisitAll(visit)
@@ -101,6 +121,12 @@ var templateFuncs = template.FuncMap{
 			return ""
 		}
 		return fmt.Sprintf("\nOptions:\n%s", b)
+	},
+	"title": func(s string) string {
+		return strings.Title(s + " command")
+	},
+	"trim": func(s string) string {
+		return strings.TrimSpace(s)
 	},
 }
 

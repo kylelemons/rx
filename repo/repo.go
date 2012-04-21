@@ -128,10 +128,10 @@ type Package struct {
 }
 
 // Keep returns true if the package should be processed by rx.  Packages are
-// not processed if they are in GOROOT, a part of the standard library, is the
-// "main" package, or had an error when processing them.
+// not processed if they are in GOROOT, a part of the standard library, or had
+// an error when processing them.
 func (p *Package) Keep() bool {
-	return !p.Goroot && !p.Standard && !p.Incomplete && p.Name != "main"
+	return !p.Goroot && !p.Standard && !p.Incomplete
 }
 
 // DetectVCS attempts to detect which version control system is hosting the

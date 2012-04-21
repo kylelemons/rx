@@ -6,7 +6,7 @@ import (
 
 var listCmd = &Command{
 	Name:    "list",
-	Summary: "List recognized repositories",
+	Summary: "List recognized repositories.",
 	Help: `The list command scans all available packages and collects information about
 their repositories.  By default, each repository is listed along with its
 dependencies and contained packages.

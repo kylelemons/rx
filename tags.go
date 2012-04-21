@@ -9,7 +9,7 @@ import (
 var tagsCmd = &Command{
 	Name:    "tags",
 	Usage:   "repo",
-	Summary: "list repository tags",
+	Summary: "List known repository tags.",
 	Help: `The tags command scans the specified repository and lists
 information about its tags.  The [repo] can be the suffix of the repository
 root path, as long as it is unique.

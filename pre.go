@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"strings"
+	"os/exec"
 
 	"github.com/kylelemons/rx/repo"
 )
@@ -9,17 +11,23 @@ import (
 var preCmd = &Command{
 	Name:    "prescribe",
 	Usage:   "repo tag",
-	Summary: "Update the repository to the given tag/rev",
+	Summary: "Update the repository to the given tag/rev.",
 	Help: `The prescribe command updates the repository to the named tag or
 revision.  The [repo] can be the suffix of the repository root path,
 as long as it is unique.  The [tag] is anything understood by the
 underlying version control system as a commit, usually a tag, branch,
-or commit.`,
+or commit.
+
+After updating, prescribe will test, build, and the install each package
+in the updated repository.  These steps can be disabled via flags such as
+"rx prescribe --test=false repo tag".  If a step is disabled, the next
+steps will be disabled as well.`,
 }
 
 var (
 	preTest  = preCmd.Flag.Bool("test", true, "test all updated packages")
-	preBuild = preCmd.Flag.Bool("build", true, "build (and install) all updated packages")
+	preBuild = preCmd.Flag.Bool("build", true, "build all updated packages")
+	preInst  = preCmd.Flag.Bool("install", true, "install all updated packages")
 )
 
 func preFunc(cmd *Command, args ...string) {
@@ -58,7 +66,42 @@ func preFunc(cmd *Command, args ...string) {
 		cmd.Fatalf("failure to change rev to %q: %s", repoTag, err)
 	}
 
-	_ = fallback
+	do := func(subCmd string) error {
+		for _, pkg := range rep.Packages {
+			cmd := exec.Command("go", "build", pkg.ImportPath)
+			cmd.Dir = os.TempDir()
+			cmd.Stdout = stdout
+			cmd.Stderr = stdout
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if !*preBuild {
+		return
+	}
+	if err := do("build"); err != nil {
+		rep.ToRev(fallback)
+		cmd.Fatalf("build failed")
+	}
+
+	if !*preTest {
+		return
+	}
+	if err := do("test"); err != nil {
+		rep.ToRev(fallback)
+		cmd.Fatalf("test failed")
+	}
+
+	if !*preInst {
+		return
+	}
+	if err := do("install"); err != nil {
+		rep.ToRev(fallback)
+		cmd.Fatalf("install failed")
+	}
 }
 
 func init() {

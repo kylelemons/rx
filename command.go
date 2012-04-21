@@ -13,11 +13,11 @@ type Command struct {
 	// Command-line flags
 	Flag flag.FlagSet
 
-	Name  string // The name of the command
+	Name  string // The name of the command (all lower case, one word)
 	Usage string // The symbolic, human-readable argument description
 
-	Summary string // The short description of the command
-	Help    string // The detailed command information
+	Summary string // The short description of the command (short sentence)
+	Help    string // The detailed command information (multiple paragraphs, etc)
 }
 
 func (c *Command) Exec(args []string) {
