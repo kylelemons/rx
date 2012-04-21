@@ -2,13 +2,10 @@ package main
 
 import (
 	"strings"
-
-	"github.com/kylelemons/rx/repo"
 )
 
 var listCmd = &Command{
 	Name:    "list",
-	Usage:   "[package|dir]",
 	Summary: "List recognized repositories",
 	Help: `The list command scans all available packages and collects information about
 their repositories.  By default, each repository is listed along with its
@@ -31,17 +28,17 @@ func listFunc(cmd *Command, args ...string) {
 		cmd.BadArgs("too many arguments")
 	}
 
-	repos, err := repo.Scan()
-	if err != nil {
+	// Scan before accessing Repos
+	if err := Scan(); err != nil {
 		cmd.Fatalf("scan: %s", err)
 	}
 
 	if *listFormat != "" {
-		render(stdout, *listFormat, repos)
+		render(stdout, *listFormat, Repos)
 		return
 	}
 
-	render(stdout, listTemplate, repos)
+	render(stdout, listTemplate, Repos)
 }
 
 func init() {

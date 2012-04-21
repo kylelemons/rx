@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"text/template"
 )
 
@@ -50,7 +52,7 @@ var usageTemplate = `rx is a command-line dependency management tool for Go proj
 
 Usage:
 	rx <command> [arguments]
-
+{{flags 2}}
 Commands:{{range .}}
 	{{.Name | printf "%-10s"}} {{.Summary}}{{end}}
 
@@ -58,7 +60,7 @@ Use "rx help <command>" for more help with a command.
 `
 
 var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
-{{.FlagDump 2}}
+{{flags 2 .}}
 {{.Summary}}
 {{.Help}}
 `
@@ -76,6 +78,31 @@ Usage:
 package documentation
 `
 
+var templateFuncs = template.FuncMap{
+	"flags": func(indent int, args ...interface{}) string {
+		b := new(bytes.Buffer)
+		prefix := strings.Repeat(" ", indent)
+		w := tabwriter.NewWriter(b, 0, 0, 1, ' ', 0)
+		visit := func(f *flag.Flag) {
+			dash := "--"
+			if len(f.Name) == 1 {
+				dash = "-"
+			}
+			fmt.Fprintf(w, "%s%s%s\t=\t%#v\t   %s\n", prefix, dash, f.Name, f.DefValue, f.Usage)
+		}
+		if len(args) == 0 {
+			flag.VisitAll(visit)
+		} else {
+			args[0].(*Command).Flag.VisitAll(visit)
+		}
+		w.Flush()
+		if b.Len() == 0 {
+			return ""
+		}
+		return fmt.Sprintf("\nOptions:\n%s", b)
+	},
+}
+
 var stdout io.Writer = tabConverter{os.Stdout}
 
 type tabConverter struct{ io.Writer }
@@ -86,7 +113,9 @@ func (t tabConverter) Write(p []byte) (int, error) {
 }
 
 func render(w io.Writer, tpl string, data interface{}) {
-	if err := template.Must(template.New("help").Parse(tpl)).Execute(w, data); err != nil {
+	t := template.New("help")
+	t.Funcs(templateFuncs)
+	if err := template.Must(t.Parse(tpl)).Execute(w, data); err != nil {
 		panic(err)
 	}
 }
