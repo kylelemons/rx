@@ -1,8 +1,10 @@
 package main
 
 import (
+	"os"
 	"flag"
 	"fmt"
+	"strings"
 )
 
 var commands = []*Command{
@@ -26,14 +28,21 @@ func main() {
 	Load()
 	defer Save()
 
+	var found *Command
 	sub, args := args[0], args[1:]
 	for _, cmd := range commands {
-		if cmd.Name == sub {
-			cmd.Exec(args)
-			return
+		if strings.HasPrefix(cmd.Name, sub) {
+			if found != nil {
+				fmt.Fprintf(stdout, "error: non-unique prefix %q\n\n", sub)
+				os.Exit(1)
+			}
+			found = cmd
 		}
 	}
-
-	fmt.Fprintf(stdout, "error: unknown command %q\n\n", sub)
-	flag.Usage()
+	if found == nil {
+		fmt.Fprintf(stdout, "error: unknown command %q\n\n", sub)
+		flag.Usage()
+		os.Exit(1)
+	}
+	found.Exec(args)
 }
