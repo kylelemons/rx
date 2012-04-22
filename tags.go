@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/kylelemons/rx/repo"
+	"kylelemons.net/go/rx/repo"
 )
 
 var tagsCmd = &Command{

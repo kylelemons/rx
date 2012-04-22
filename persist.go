@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kylelemons/rx/repo"
+	"kylelemons.net/go/rx/repo"
 )
 
 var (

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kylelemons/rx/vcs"
+	"kylelemons.net/go/rx/vcs"
 )
 
 // A Repository is a directory 

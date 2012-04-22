@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/kylelemons/rx/repo"
+	"kylelemons.net/go/rx/repo"
 )
 
 var preCmd = &Command{
