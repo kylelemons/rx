@@ -1,4 +1,4 @@
-package repo
+package graph
 
 import (
 	"bytes"
@@ -11,12 +11,36 @@ import (
 	"kylelemons.net/go/rx/vcs"
 )
 
-// A Repository is a directory 
+// A Repository is a version-controlled directory containing one or more packages.
 type Repository struct {
-	Path     string     // directory containing the repository
-	VCS      string     // Version control system
-	Packages []*Package // packages contained in this repository
-	RepoDeps []string   // repositories (by path) that packages
+	Root     string   // directory containing the repository
+	VCS      string   // version control system
+	Packages []string // packages contained in this repository
+}
+
+// String returns the import pattern matching all packages
+func (r *Repository) String() string {
+	switch len(r.Packages) {
+	case 0:
+		return ""
+	case 1:
+		return r.Packages[0]
+	}
+	prefix, first := len(r.Packages[0]), r.Packages[0]
+	for _, imp := range r.Packages {
+		if l := len(imp); l < prefix {
+			prefix = l
+		}
+	}
+	for _, imp := range r.Packages[1:] {
+		for i := 0; i < prefix; i++ {
+			if imp[i] != first[i] {
+				prefix = i
+				break
+			}
+		}
+	}
+	return first[:prefix] + "..."
 }
 
 func (r *Repository) Head() (string, error) {
@@ -25,7 +49,7 @@ func (r *Repository) Head() (string, error) {
 		return "", fmt.Errorf("repo: unknown vcs %q", r.VCS)
 	}
 	cmd := exec.Command(tool.Command, tool.Current...)
-	cmd.Dir = r.Path
+	cmd.Dir = r.Root
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("repo: head: %s", err)
@@ -40,7 +64,7 @@ func (r *Repository) ToRev(rev string) error {
 		return fmt.Errorf("repo: unknown vcs %q", r.VCS)
 	}
 	cmd := exec.Command(tool.Command)
-	cmd.Dir = r.Path
+	cmd.Dir = r.Root
 	for _, arg := range tool.ToRev {
 		cmd.Args = append(cmd.Args, tsub(arg, rev))
 	}
@@ -84,7 +108,7 @@ func (r *Repository) Downgrades() (TagList, error) {
 
 func (r *Repository) revTags(tool *vcs.Tool, rev string, command []string, regex string) (TagList, error) {
 	cmd := exec.Command(tool.Command)
-	cmd.Dir = r.Path
+	cmd.Dir = r.Root
 	for _, arg := range command {
 		cmd.Args = append(cmd.Args, tsub(arg, rev))
 	}
@@ -129,12 +153,15 @@ type Package struct {
 	// Package files
 	GoFiles      []string // .go files
 	TestGoFiles  []string // _test.go files
-	XTestGoFiles []string
+	XTestGoFiles []string // currently ignored
 
 	// Package imports
 	Imports      []string // import paths used by this package
 	TestImports  []string // import paths used by _test.go files in this package
-	XTestImports []string
+	XTestImports []string // currently ignored
+
+	// Rx specific
+	RepoRoot string
 }
 
 // Keep returns true if the package should be processed by rx.  Packages are

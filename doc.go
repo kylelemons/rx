@@ -58,14 +58,14 @@ their repositories.  By default, each repository is listed along with its
 dependencies and contained packages.
 
 The -f option takes a template as a format.  The data passed into the
-template invocation is an (rx/repo) RepoMap, and the default format is:
+template invocation is an (rx/graph) RepoMap, and the default format is:
 
   {{range .}}{{.Path}}:{{range .Packages}} {{.Name}}{{end}}
   {{end}}
 
 If you specify --long, the format will be:
 
-  {{range .}}Repository ({{.VCS}}) {{printf "%q" .Path}}:
+  {{range .}}Graphitory ({{.VCS}}) {{printf "%q" .Path}}:
       Dependencies:{{range .RepoDeps}}
           {{.}}{{end}}
       Packages:{{range .Packages}}
@@ -90,7 +90,7 @@ information about its tags.  The <repo> can be the suffix of the repository
 root path, as long as it is unique.
 
 The -f option takes a template as a format.  The data passed into the
-template invocation is an (rx/repo) TagList, and the default format is:
+template invocation is an (rx/graph) TagList, and the default format is:
 
   {{range .}}{{.Rev}} {{.Name}}
   {{end}}

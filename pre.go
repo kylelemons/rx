@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
-	"os"
-	"os/exec"
-	"strings"
+	//"log"
+	//"os"
+	//"os/exec"
+	//"strings"
 
-	"kylelemons.net/go/rx/repo"
+	//"kylelemons.net/go/rx/graph"
 )
 
 var preCmd = &Command{
@@ -42,40 +42,35 @@ func preFunc(cmd *Command, args ...string) {
 	pathSuffix := args[0]
 	repoTag := args[1]
 
-	// Scan before accessing Repos
+	// Scan before accessing Graph
 	if err := Scan(); err != nil {
 		cmd.Fatalf("scan: %s", err)
 	}
 
-	// TODO(kevlar): This seems like something we'll be doing often...
-	var rep *repo.Repository
-	for p, r := range Repos {
-		if strings.HasSuffix(p, pathSuffix) {
-			if rep != nil {
-				cmd.Fatalf("non-unique suffix %q", pathSuffix)
-			}
-			rep = r
-		}
-	}
-	if rep == nil {
-		cmd.Fatalf("unknown repo %q", pathSuffix)
+	repo, err := Deps.FindRepo(pathSuffix)
+	if err != nil {
+		cmd.Fatalf("<repo>: %s", err)
 	}
 
-	fallback, err := rep.Head()
+	fallback, err := repo.Head()
 	if err != nil {
 		cmd.Fatalf("failure to determine head: %s", err)
 	}
 	defer func() {
 		if fallback != "" {
-			rep.ToRev(fallback)
+			cmd.Errorf("errors detected, falling back to %q...", fallback)
+			if err := repo.ToRev(fallback); err != nil {
+				cmd.Errorf("during fallback: %s", err)
+			}
 		}
 	}()
 
-	if err := rep.ToRev(repoTag); err != nil {
+	if err := repo.ToRev(repoTag); err != nil {
 		cmd.Fatalf("failure to change rev to %q: %s", repoTag, err)
 	}
 
-	do := func(r *repo.Repository, subCmd string) error {
+	/*
+	do := func(r *graph.Repository, subCmd string) error {
 		for _, pkg := range r.Packages {
 			switch subCmd {
 			case "test":
@@ -103,8 +98,8 @@ func preFunc(cmd *Command, args ...string) {
 		return nil
 	}
 
-	rebuilt := map[*repo.Repository]bool{}
-	process := func(r *repo.Repository) {
+	rebuilt := map[*repo.Graphitory]bool{}
+	process := func(r *repo.Graphitory) {
 		log.Printf("Processing repo in %q...", r.Path)
 		if *preBuild {
 			log.Printf(" - Build")
@@ -132,7 +127,7 @@ func preFunc(cmd *Command, args ...string) {
 
 		if *preCasc {
 			log.Printf(" - Cascade")
-			for _, check := range Repos {
+			for _, check := range Graph {
 				// Don't check repos we've already rebuilt
 				if _, ok := rebuilt[check]; ok {
 					continue
@@ -141,7 +136,7 @@ func preFunc(cmd *Command, args ...string) {
 					// If repo `check` depends on the current repo `r`
 					if dep == r.Path {
 						// rebuild it
-						log.Printf("   - Repository %q", check.Path)
+						log.Printf("   - Graphitory %q", check.Path)
 						rebuilt[check] = false
 						break
 					}
@@ -163,6 +158,7 @@ func preFunc(cmd *Command, args ...string) {
 			}
 		}
 	}
+	*/
 
 	fallback = ""
 }

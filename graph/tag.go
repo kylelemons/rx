@@ -1,4 +1,4 @@
-package repo
+package graph
 
 type Tag struct {
 	Name string

@@ -1,9 +1,7 @@
 package main
 
 import (
-	"strings"
-
-	"kylelemons.net/go/rx/repo"
+	"kylelemons.net/go/rx/graph"
 )
 
 var tagsCmd = &Command{
@@ -15,7 +13,7 @@ information about its tags.  The <repo> can be the suffix of the repository
 root path, as long as it is unique.
 
 The -f option takes a template as a format.  The data passed into the
-template invocation is an (rx/repo) TagList, and the default format is:
+template invocation is an (rx/graph) TagList, and the default format is:
 
 ` + ind2sp(tagsTemplate),
 }
@@ -37,34 +35,27 @@ func tagsFunc(cmd *Command, args ...string) {
 	}
 	pathSuffix := args[0]
 
-	// Scan before accessing Repos
+	// Scan before accessing Graph
 	if err := Scan(); err != nil {
 		cmd.Fatalf("scan: %s", err)
 	}
 
-	var tags repo.TagList
-	for path, repo := range Repos {
-		if strings.HasSuffix(path, pathSuffix) {
-			if tags != nil {
-				cmd.Fatalf("non-unique suffix %q", pathSuffix)
-			}
-
-			var err error
-			switch {
-			case *tagsUp:
-				tags, err = repo.Upgrades()
-			case *tagsDown:
-				tags, err = repo.Downgrades()
-			default:
-				tags, err = repo.Tags()
-			}
-			if err != nil {
-				cmd.Fatalf("list tags for %q: %s", path, err)
-			}
-		}
+	repo, err := Deps.FindRepo(pathSuffix)
+	if err != nil {
+		cmd.Fatalf("<repo>: %s", err)
 	}
-	if tags == nil {
-		cmd.Fatalf("unknown repo %q", pathSuffix)
+
+	var tags graph.TagList
+	switch {
+	case *tagsUp:
+		tags, err = repo.Upgrades()
+	case *tagsDown:
+		tags, err = repo.Downgrades()
+	default:
+		tags, err = repo.Tags()
+	}
+	if err != nil {
+		cmd.Fatalf("list tags for %q: %s", repo.Root, err)
 	}
 
 	switch {

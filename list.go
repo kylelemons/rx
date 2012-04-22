@@ -12,7 +12,7 @@ their repositories.  By default, each repository is listed along with its
 dependencies and contained packages.
 
 The -f option takes a template as a format.  The data passed into the
-template invocation is an (rx/repo) RepoMap, and the default format is:
+template invocation is an (rx/graph) RepoMap, and the default format is:
 
 ` + ind2sp(listTemplate) + `
 
@@ -35,18 +35,18 @@ func listFunc(cmd *Command, args ...string) {
 		cmd.BadArgs("too many arguments")
 	}
 
-	// Scan before accessing Repos
+	// Scan before accessing Deps
 	if err := Scan(); err != nil {
 		cmd.Fatalf("scan: %s", err)
 	}
 
 	switch {
 	case *listFormat != "":
-		render(stdout, *listFormat, Repos)
+		render(stdout, *listFormat, Deps)
 	case *listLong:
-		render(stdout, listTemplateLong, Repos)
+		render(stdout, listTemplateLong, Deps)
 	default:
-		render(stdout, listTemplate, Repos)
+		render(stdout, listTemplate, Deps)
 	}
 }
 
@@ -55,15 +55,17 @@ func init() {
 }
 
 var (
-	listTemplate = `{{range .}}{{.Path}}:{{range .Packages}} {{.Name}}{{end}}
+	listTemplate = `{{range .Repository}}{{.}} :{{range .Packages}}{{$pkg := index $.Package .}} {{$pkg.Name}}{{end}}
 {{end}}`
 
-	listTemplateLong = `{{range .}}Repository ({{.VCS}}) {{printf "%q" .Path}}:
-	Dependencies:{{range .RepoDeps}}
-		{{.}}{{end}}
+	listTemplateLong = `{{range .Repository}}Repository ({{.VCS}}) {{.}}:
 	Packages:{{range .Packages}}
-		{{.ImportPath}}{{end}}
-
+		{{$pkg := index $.Package .}}{{$pkg.ImportPath}}{{end}}
+{{with $.RepoDeps .}}	Dependencies:{{range .}}
+		{{.}}{{end}}
+{{end}}{{with $.RepoUsers .}}	Users:{{range .}}
+		{{.}}{{end}}
+{{end}}
 {{end}}`
 )
 
