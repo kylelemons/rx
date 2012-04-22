@@ -2,6 +2,11 @@
 The rx command is a dependency and version management system for Go projects.
 It is built on top of the go tool and utilizes the $GOPATH convention.
 
+Installation
+
+As usual, the rx tool can be installed or upgraded via the "go" tool:
+    go get -u kylelemons.net/go/rx
+
 General Usage
 
 The rx command is composed of numerous sub-commands.
@@ -13,6 +18,7 @@ The general usage is:
 Options:
   --rescan = false        Force a rescan of repositories
   --rxdir  = $HOME/.rx    Directory in which to save state
+  -v       = false        Turn on verbose logging
 
 Commands:
     help       Help on the rx command and subcommands.
@@ -64,7 +70,7 @@ If you specify --long, the format will be:
           {{.}}{{end}}
       Packages:{{range .Packages}}
           {{.ImportPath}}{{end}}
-
+  
   {{end}}
 Tags Command
 
@@ -96,9 +102,11 @@ Usage:
     rx prescribe <repo> <tag>
 
 Options:
-  --build   = true    build all updated packages
-  --install = true    install all updated packages
-  --test    = true    test all updated packages
+  --build   = true     build all updated packages
+  --cascade = true     recursively process depending packages too
+  --install = true     install all updated packages
+  --link    = false    link and install all updated binaries
+  --test    = true     test all updated packages
 
 The prescribe command updates the repository to the named tag or
 revision.  The <repo> can be the suffix of the repository root path,
@@ -108,8 +116,10 @@ or commit.
 
 After updating, prescribe will test, build, and the install each package
 in the updated repository.  These steps can be disabled via flags such as
-"rx prescribe --test=false repo tag".  If a step is disabled, the next
-steps will be disabled as well.
+"rx prescribe --test=false repo tag".
+
+By default, this will not link and install affected binaries; to turn this
+behavior on, see the --link option.
 
 */
 package main

@@ -47,54 +47,6 @@ func helpFunc(cmd *Command, args ...string) {
 func init() {
 	helpCmd.Run = helpFunc
 }
-
-var generalHelp = `	rx [<options>] [<subcommand> [<suboptions>] [<arguments> ...]]
-{{flags 2}}
-Commands:{{range .}}
-	{{.Name | printf "%-10s"}} {{.Summary}}{{end}}
-
-Use "rx help <command>" for more help with a command.
-`
-
-var usageTemplate = `rx is a command-line dependency management tool for Go projects.
-
-Usage:
-` + generalHelp
-
-var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
-{{flags 2 .}}
-{{.Summary}}
-{{if .Help}}
-{{.Help}}{{end}}
-`
-
-var docTemplate = `/*
-The rx command is a dependency and version management system for Go projects.
-It is built on top of the go tool and utilizes the $GOPATH convention.
-
-General Usage
-
-The rx command is composed of numerous sub-commands.
-Sub-commands can be abbreviated to any unique prefix on the command-line.
-The general usage is:
-
-` + generalHelp + `
-
-See below for a description of the various sub-commands understood by rx.
-
-{{range .}}{{.Name | title}}
-
-{{.Summary | trim}}
-
-Usage:
-	rx {{.Name}} {{.Usage | trim}}
-{{flags 2 .}}
-{{.Help | trim}}
-{{end}}
-*/
-package main
-`
-
 var templateFuncs = template.FuncMap{
 	"flags": func(indent int, args ...interface{}) string {
 		b := new(bytes.Buffer)
@@ -148,3 +100,57 @@ func render(w io.Writer, tpl string, data interface{}) {
 		panic(err)
 	}
 }
+
+var generalHelp = `	rx [<options>] [<subcommand> [<suboptions>] [<arguments> ...]]
+{{flags 2}}
+Commands:{{range .}}
+	{{.Name | printf "%-10s"}} {{.Summary}}{{end}}
+
+Use "rx help <command>" for more help with a command.
+`
+
+var usageTemplate = `rx is a command-line dependency management tool for Go projects.
+
+Usage:
+` + generalHelp
+
+var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
+{{flags 2 .}}
+{{.Summary}}
+{{if .Help}}
+{{.Help}}{{end}}
+`
+
+var docTemplate = `/*
+The rx command is a dependency and version management system for Go projects.
+It is built on top of the go tool and utilizes the $GOPATH convention.
+
+Installation
+
+As usual, the rx tool can be installed or upgraded via the "go" tool:
+	go get -u kylelemons.net/go/rx
+
+General Usage
+
+The rx command is composed of numerous sub-commands.
+Sub-commands can be abbreviated to any unique prefix on the command-line.
+The general usage is:
+
+` + generalHelp + `
+
+See below for a description of the various sub-commands understood by rx.
+
+{{range .}}{{.Name | title}}
+
+{{.Summary | trim}}
+
+Usage:
+	rx {{.Name}} {{.Usage | trim}}
+{{flags 2 .}}
+{{.Help | trim}}
+{{end}}
+*/
+package main
+`
+
+
