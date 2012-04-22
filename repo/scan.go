@@ -14,7 +14,7 @@ import (
 type RepoMap map[string]*Repository
 
 func Scan() (RepoMap, error) {
-	list := exec.Command("go", "list", "-json", "all")
+	list := exec.Command("go", "list", "-e", "-json", "all")
 	list.Stderr = os.Stderr
 	js, err := list.Output()
 	if err != nil {
