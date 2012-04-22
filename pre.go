@@ -84,7 +84,7 @@ func preFunc(cmd *Command, args ...string) {
 				}
 				// Install dependencies so we don't get complaints
 				if *preInst {
-					exec.Command("go", "test", "-i", pkg.ImportPath)
+					exec.Command("go", "test", "-i", pkg.ImportPath).Run()
 				}
 			case "install":
 				if !*preLink && pkg.IsBinary() {
