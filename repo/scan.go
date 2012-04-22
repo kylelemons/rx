@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"sort"
 )
@@ -14,6 +15,7 @@ type RepoMap map[string]*Repository
 
 func Scan() (RepoMap, error) {
 	list := exec.Command("go", "list", "-json", "all")
+	list.Stderr = os.Stderr
 	js, err := list.Output()
 	if err != nil {
 		return nil, fmt.Errorf("repo: go list: %s", err)

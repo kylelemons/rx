@@ -33,7 +33,7 @@ func Load() {
 	repoFile := filepath.Join(*rxDir, "repos")
 	repo, err := os.Open(repoFile)
 	if err != nil {
-		log.Printf("Skipping load: ", err)
+		log.Printf("Skipping load: %s", err)
 		return
 	}
 	log.Printf("Loading repos from %q...", repoFile)
