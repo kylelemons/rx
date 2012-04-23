@@ -16,9 +16,10 @@ The general usage is:
     rx [<options>] [<subcommand> [<suboptions>] [<arguments> ...]]
 
 Options:
-  --rescan = false        Force a rescan of repositories
-  --rxdir  = $HOME/.rx    Directory in which to save state
-  -v       = false        Turn on verbose logging
+  --autosave = true         Automatically save dependency graph (disable for concurrent runs)
+  --rescan   = false        Force a rescan of repositories
+  --rxdir    = $HOME/.rx    Directory in which to save state
+  -v         = false        Turn on verbose logging
 
 Commands:
     help       Help on the rx command and subcommands.
@@ -47,7 +48,7 @@ List Command
 List recognized repositories.
 
 Usage:
-    rx list 
+    rx list [<filter>]
 
 Options:
   -f                List output format
@@ -55,22 +56,25 @@ Options:
 
 The list command scans all available packages and collects information about
 their repositories.  By default, each repository is listed along with its
-dependencies and contained packages.
+dependencies and contained packages. If a <filter> regular expression is
+provided, only repositories whose root path matches the filter will be listed.
 
 The -f option takes a template as a format.  The data passed into the
 template invocation is an (rx/graph) RepoMap, and the default format is:
 
-  {{range .}}{{.Path}}:{{range .Packages}} {{.Name}}{{end}}
+  {{range .Repository}}{{.}} :{{range .Packages}}{{$pkg := index $.Package .}} {{$pkg.Name}}{{end}}
   {{end}}
 
 If you specify --long, the format will be:
 
-  {{range .}}Graphitory ({{.VCS}}) {{printf "%q" .Path}}:
-      Dependencies:{{range .RepoDeps}}
-          {{.}}{{end}}
+  {{range .Repository}}Repository ({{.VCS}}) {{.}}:
       Packages:{{range .Packages}}
-          {{.ImportPath}}{{end}}
-  
+          {{$pkg := index $.Package .}}{{$pkg.ImportPath}}{{end}}
+  {{with $.RepoDeps .}}    Dependencies:{{range .}}
+          {{.}}{{end}}
+  {{end}}{{with $.RepoUsers .}}    Users:{{range .}}
+          {{.}}{{end}}
+  {{end}}
   {{end}}
 Tags Command
 
@@ -86,8 +90,8 @@ Options:
   --up   = false    Only show updates (overrides --down)
 
 The tags command scans the specified repository and lists
-information about its tags.  The <repo> can be the suffix of the repository
-root path, as long as it is unique.
+information about its tags.  The <repo> can be any piece of the repository root
+path, as long as it is unique.
 
 The -f option takes a template as a format.  The data passed into the
 template invocation is an (rx/graph) TagList, and the default format is:
@@ -109,10 +113,9 @@ Options:
   --test    = true     test all updated packages
 
 The prescribe command updates the repository to the named tag or
-revision.  The <repo> can be the suffix of the repository root path,
-as long as it is unique.  The <tag> is anything understood by the
-underlying version control system as a commit, usually a tag, branch,
-or commit.
+revision.  The <repo> can be any piece of the repository root path, as long as
+it is unique.  The <tag> is anything understood by the underlying version
+control system as a commit, usually a tag, branch, or commit.
 
 After updating, prescribe will test, build, and the install each package
 in the updated repository.  These steps can be disabled via flags such as
