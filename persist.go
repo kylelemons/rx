@@ -21,7 +21,7 @@ var (
 var Deps = graph.New()
 
 func Scan() error {
-	if !*rescan {
+	if len(Deps.Repository) > 0 && !*rescan {
 		return nil
 	}
 	return Deps.Scan("all")
@@ -30,6 +30,10 @@ func Scan() error {
 // TODO(kevlar): environment variable RX_DIR or something
 
 func Load() {
+	if *rescan {
+		return
+	}
+
 	graphFile := filepath.Join(*rxDir, "graph")
 
 	// Open the graphFile
