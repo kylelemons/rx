@@ -106,11 +106,12 @@ Usage:
     rx prescribe <repo> <tag>
 
 Options:
-  --build   = true     build all updated packages
-  --cascade = true     recursively process depending packages too
-  --install = true     install all updated packages
-  --link    = false    link and install all updated binaries
-  --test    = true     test all updated packages
+  --build    = true     build all updated packages
+  --cascade  = true     recursively process depending packages too
+  --install  = true     install all updated packages
+  --link     = false    link and install all updated binaries
+  --rollback = true     automatically roll back failed upgrade
+  --test     = true     test all updated packages
 
 The prescribe command updates the repository to the named tag or
 revision.  The <repo> can be any piece of the repository root path, as long as
