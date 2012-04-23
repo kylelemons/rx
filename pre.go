@@ -41,11 +41,6 @@ func preFunc(cmd *Command, args ...string) {
 	path := args[0]
 	repoTag := args[1]
 
-	// Scan before accessing Graph
-	if err := Scan(); err != nil {
-		cmd.Fatalf("scan: %s", err)
-	}
-
 	repo, err := Deps.FindRepo(path)
 	if err != nil {
 		cmd.Fatalf("<repo>: %s", err)

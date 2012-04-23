@@ -35,11 +35,6 @@ func tagsFunc(cmd *Command, args ...string) {
 	}
 	path := args[0]
 
-	// Scan before accessing Graph
-	if err := Scan(); err != nil {
-		cmd.Fatalf("scan: %s", err)
-	}
-
 	repo, err := Deps.FindRepo(path)
 	if err != nil {
 		cmd.Fatalf("<repo>: %s", err)

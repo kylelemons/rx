@@ -44,13 +44,19 @@ func main() {
 	for _, cmd := range commands {
 		if strings.HasPrefix(cmd.Name, sub) {
 			if found != nil {
-				fmt.Fprintf(stdout, "error: non-unique prefix %q\n\n", sub)
+				fmt.Fprintf(stdout, "error: non-unique command prefix %q\n\n", sub)
 				os.Exit(1)
 			}
 			found = cmd
 		}
 	}
-	// TODO(kevlar): automatically Scan; everything needs it
+
+	// Scan first (this is a no-op unless load failed or --rescan)
+	if err := Scan(); err != nil {
+		fmt.Fprintf(stdout, "error: scan: %s", err)
+		os.Exit(1)
+	}
+
 	if found == nil {
 		fmt.Fprintf(stdout, "error: unknown command %q\n\n", sub)
 		flag.Usage()

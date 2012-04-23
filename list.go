@@ -32,11 +32,6 @@ var (
 )
 
 func listFunc(cmd *Command, args ...string) {
-	// Scan before accessing Deps
-	if err := Scan(); err != nil {
-		cmd.Fatalf("scan: %s", err)
-	}
-
 	data := struct {
 		Repository map[string]*graph.Repository
 		*graph.Graph
