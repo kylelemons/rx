@@ -14,10 +14,9 @@ var preCmd = &Command{
 	Usage:   "<repo> <tag>",
 	Summary: "Update the repository to the given tag/rev.",
 	Help: `The prescribe command updates the repository to the named tag or
-revision.  The <repo> can be the suffix of the repository root path,
-as long as it is unique.  The <tag> is anything understood by the
-underlying version control system as a commit, usually a tag, branch,
-or commit.
+revision.  The <repo> can be any piece of the repository root path, as long as
+it is unique.  The <tag> is anything understood by the underlying version
+control system as a commit, usually a tag, branch, or commit.
 
 After updating, prescribe will test, build, and the install each package
 in the updated repository.  These steps can be disabled via flags such as
@@ -39,7 +38,7 @@ func preFunc(cmd *Command, args ...string) {
 	if len(args) != 2 {
 		cmd.BadArgs("requires two arguments")
 	}
-	pathSuffix := args[0]
+	path := args[0]
 	repoTag := args[1]
 
 	// Scan before accessing Graph
@@ -47,7 +46,7 @@ func preFunc(cmd *Command, args ...string) {
 		cmd.Fatalf("scan: %s", err)
 	}
 
-	repo, err := Deps.FindRepo(pathSuffix)
+	repo, err := Deps.FindRepo(path)
 	if err != nil {
 		cmd.Fatalf("<repo>: %s", err)
 	}

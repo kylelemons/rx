@@ -29,20 +29,20 @@ func New() *Graph {
 	}
 }
 
-// FindRepo attempts to find a repository with the given suffix.
+// FindRepo attempts to find a repository with the given key.
 // If a unique repository is found it is returned, an error otherwise.
-func (g *Graph) FindRepo(suffix string) (*Repository, error) {
+func (g *Graph) FindRepo(key string) (*Repository, error) {
 	var found *Repository
 	for path, repo := range g.Repository {
-		if strings.HasSuffix(path, suffix) {
+		if strings.Contains(path, key) {
 			if found != nil {
-				return nil, fmt.Errorf("non-unique repository suffix %q", suffix)
+				return nil, fmt.Errorf("non-unique repository specifier %q", key)
 			}
 			found = repo
 		}
 	}
 	if found == nil {
-		return nil, fmt.Errorf("unknown repository suffix %q", suffix)
+		return nil, fmt.Errorf("unknown repository %q", key)
 	}
 	return found, nil
 }

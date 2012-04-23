@@ -2,14 +2,19 @@ package main
 
 import (
 	"strings"
+	"regexp"
+
+	"kylelemons.net/go/rx/graph"
 )
 
 var listCmd = &Command{
 	Name:    "list",
+	Usage:   "[<filter>]",
 	Summary: "List recognized repositories.",
 	Help: `The list command scans all available packages and collects information about
 their repositories.  By default, each repository is listed along with its
-dependencies and contained packages.
+dependencies and contained packages. If a <filter> regular expression is
+provided, only repositories whose root path matches the filter will be listed.
 
 The -f option takes a template as a format.  The data passed into the
 template invocation is an (rx/graph) RepoMap, and the default format is:
@@ -27,26 +32,44 @@ var (
 )
 
 func listFunc(cmd *Command, args ...string) {
-	switch len(args) {
-	case 0:
-		args = append(args, "all")
-	case 1:
-	default:
-		cmd.BadArgs("too many arguments")
-	}
-
 	// Scan before accessing Deps
 	if err := Scan(); err != nil {
 		cmd.Fatalf("scan: %s", err)
 	}
 
+	data := struct {
+		Repository map[string]*graph.Repository
+		*graph.Graph
+	}{
+		Repository: Deps.Repository,
+		Graph:      Deps,
+	}
+
+	switch len(args) {
+	case 0:
+	case 1:
+		filter, err := regexp.Compile(args[0])
+		if err != nil {
+			cmd.BadArgs("<filter> failed to compile: %s", err)
+		}
+
+		data.Repository = make(map[string]*graph.Repository)
+		for path, repo := range Deps.Repository {
+			if filter.MatchString(path) {
+				data.Repository[path] = repo
+			}
+		}
+	default:
+		cmd.BadArgs("too many arguments")
+	}
+
 	switch {
 	case *listFormat != "":
-		render(stdout, *listFormat, Deps)
+		render(stdout, *listFormat, data)
 	case *listLong:
-		render(stdout, listTemplateLong, Deps)
+		render(stdout, listTemplateLong, data)
 	default:
-		render(stdout, listTemplate, Deps)
+		render(stdout, listTemplate, data)
 	}
 }
 

@@ -9,8 +9,8 @@ var tagsCmd = &Command{
 	Usage:   "<repo>",
 	Summary: "List known repository tags.",
 	Help: `The tags command scans the specified repository and lists
-information about its tags.  The <repo> can be the suffix of the repository
-root path, as long as it is unique.
+information about its tags.  The <repo> can be any piece of the repository root
+path, as long as it is unique.
 
 The -f option takes a template as a format.  The data passed into the
 template invocation is an (rx/graph) TagList, and the default format is:
@@ -33,14 +33,14 @@ func tagsFunc(cmd *Command, args ...string) {
 	default:
 		cmd.BadArgs("too many arguments")
 	}
-	pathSuffix := args[0]
+	path := args[0]
 
 	// Scan before accessing Graph
 	if err := Scan(); err != nil {
 		cmd.Fatalf("scan: %s", err)
 	}
 
-	repo, err := Deps.FindRepo(pathSuffix)
+	repo, err := Deps.FindRepo(path)
 	if err != nil {
 		cmd.Fatalf("<repo>: %s", err)
 	}
