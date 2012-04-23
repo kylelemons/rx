@@ -1,12 +1,12 @@
 package main
 
 import (
-	//"log"
-	//"os"
-	//"os/exec"
+	"log"
+	"os"
+	"os/exec"
 	//"strings"
 
-	//"kylelemons.net/go/rx/graph"
+	"kylelemons.net/go/rx/graph"
 )
 
 var preCmd = &Command{
@@ -27,11 +27,12 @@ behavior on, see the --link option.`,
 }
 
 var (
-	preBuild = preCmd.Flag.Bool("build", true, "build all updated packages")
-	preLink  = preCmd.Flag.Bool("link", false, "link and install all updated binaries")
-	preTest  = preCmd.Flag.Bool("test", true, "test all updated packages")
-	preInst  = preCmd.Flag.Bool("install", true, "install all updated packages")
-	preCasc  = preCmd.Flag.Bool("cascade", true, "recursively process depending packages too")
+	preBuild    = preCmd.Flag.Bool("build", true, "build all updated packages")
+	preLink     = preCmd.Flag.Bool("link", false, "link and install all updated binaries")
+	preTest     = preCmd.Flag.Bool("test", true, "test all updated packages")
+	preInstall  = preCmd.Flag.Bool("install", true, "install all updated packages")
+	preCascade  = preCmd.Flag.Bool("cascade", true, "recursively process depending packages too")
+	preFallback = preCmd.Flag.Bool("rollback", true, "automatically roll back failed upgrade")
 )
 
 func preFunc(cmd *Command, args ...string) {
@@ -51,7 +52,7 @@ func preFunc(cmd *Command, args ...string) {
 		cmd.Fatalf("failure to determine head: %s", err)
 	}
 	defer func() {
-		if fallback != "" {
+		if *preFallback && fallback != "" {
 			cmd.Errorf("errors detected, falling back to %q...", fallback)
 			if err := repo.ToRev(fallback); err != nil {
 				cmd.Errorf("during fallback: %s", err)
@@ -63,16 +64,19 @@ func preFunc(cmd *Command, args ...string) {
 		cmd.Fatalf("failure to change rev to %q: %s", repoTag, err)
 	}
 
-	/*
-	do := func(r *graph.Repository, subCmd string) error {
-		for _, pkg := range r.Packages {
+	do := func(repo *graph.Repository, subCmd string) error {
+		for _, importPath := range repo.Packages {
+			pkg, ok := Deps.Package[importPath]
+			if !ok {
+				cmd.Fatalf("unknown package %q", importPath)
+			}
 			switch subCmd {
 			case "test":
 				if !pkg.IsTestable() {
 					continue
 				}
 				// Install dependencies so we don't get complaints
-				if *preInst {
+				if *preInstall {
 					exec.Command("go", "test", "-i", pkg.ImportPath).Run()
 				}
 			case "install":
@@ -92,67 +96,59 @@ func preFunc(cmd *Command, args ...string) {
 		return nil
 	}
 
-	rebuilt := map[*repo.Graphitory]bool{}
-	process := func(r *repo.Graphitory) {
-		log.Printf("Processing repo in %q...", r.Path)
+	rebuilt := map[*graph.Repository]bool{}
+	process := func(repo *graph.Repository) {
+		log.Printf("Processing %s", repo)
 		if *preBuild {
 			log.Printf(" - Build")
-			if err := do(r, "build"); err != nil {
-				cmd.Fatalf("build failed: %q on %q broke %q",
-					repoTag, rep.Path, r.Path)
+			if err := do(repo, "build"); err != nil {
+				cmd.Fatalf("build failed: %q broke %q", repoTag, repo)
 			}
 		}
 
 		if *preTest {
 			log.Printf(" - Test")
-			if err := do(r, "test"); err != nil {
-				cmd.Fatalf("test failed: %q on %q broke %q: %s",
-					repoTag, rep.Path, r.Path, err)
+			if err := do(repo, "test"); err != nil {
+				cmd.Fatalf("test failed: %q broke %q: %s", repoTag, repo, err)
 			}
 		}
 
-		if *preInst {
+		if *preInstall {
 			log.Printf(" - Install")
-			if err := do(r, "install"); err != nil {
-				cmd.Fatalf("install failed: %q on %q broke %q",
-					repoTag, rep.Path, r.Path)
+			if err := do(repo, "install"); err != nil {
+				cmd.Fatalf("install failed: %q broke %q", repoTag, repo)
 			}
 		}
 
-		if *preCasc {
-			log.Printf(" - Cascade")
-			for _, check := range Graph {
-				// Don't check repos we've already rebuilt
-				if _, ok := rebuilt[check]; ok {
+		if *preCascade {
+			deps, err := Deps.RepoDeps(repo)
+			if err != nil {
+				cmd.Fatalf("cascade: %s", err)
+			}
+			for _, dep := range deps {
+				// Don't process repos we've already rebuilt
+				if _, ok := rebuilt[dep]; ok {
 					continue
 				}
-				for _, dep := range check.RepoDeps {
-					// If repo `check` depends on the current repo `r`
-					if dep == r.Path {
-						// rebuild it
-						log.Printf("   - Graphitory %q", check.Path)
-						rebuilt[check] = false
-						break
-					}
-				}
+				log.Printf(" - Cascade: %s", dep)
+				rebuilt[dep] = false
 			}
 		}
 	}
 
 	cascade := true
-	rebuilt[rep] = false
+	rebuilt[repo] = false
 
 	for cascade {
 		cascade = false
-		for rep, processed := range rebuilt {
+		for next, processed := range rebuilt {
 			if !processed {
 				cascade = true
-				rebuilt[rep] = true
-				process(rep)
+				rebuilt[next] = true
+				process(next)
 			}
 		}
 	}
-	*/
 
 	fallback = ""
 }

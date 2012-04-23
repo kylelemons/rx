@@ -35,7 +35,7 @@ var Known = map[string]*Tool{
 		// Commands
 		RootDir: []string{"rev-parse", "--show-toplevel"},
 		ToRev:   []string{"checkout", "{{.}}"},
-		Current: []string{"log", "--pretty=format:%H", "HEAD"},
+		Current: []string{"log", "--pretty=format:%H", "-n", "1", "HEAD"},
 		TagList: []string{"log", "--pretty=format:%H%d", "{{.}}"},
 		Updates: []string{"log", "--pretty=format:%H%d", "--all", "^{{.}}"},
 		// Regexes
