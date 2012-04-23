@@ -60,7 +60,7 @@ dependencies and contained packages. If a <filter> regular expression is
 provided, only repositories whose root path matches the filter will be listed.
 
 The -f option takes a template as a format.  The data passed into the
-template invocation is an (rx/graph) RepoMap, and the default format is:
+template invocation is an (rx/graph) Graph, and the default format is:
 
   {{range .Repository}}{{.}} :{{range .Packages}}{{$pkg := index $.Package .}} {{$pkg.Name}}{{end}}
   {{end}}
