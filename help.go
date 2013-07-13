@@ -47,6 +47,7 @@ func helpFunc(cmd *Command, args ...string) {
 func init() {
 	helpCmd.Run = helpFunc
 }
+
 var templateFuncs = template.FuncMap{
 	"flags": func(indent int, args ...interface{}) string {
 		b := new(bytes.Buffer)
@@ -58,10 +59,12 @@ var templateFuncs = template.FuncMap{
 				dash = "-"
 			}
 			eq := "= " + f.DefValue
-			if f.DefValue == "" {
+			switch typeName := fmt.Sprintf("%T", f.Value); {
+			case typeName == "*flag.stringValue":
+				// TODO(kevlar): make my own stringValue type so as to not depend on this?
+				eq = fmt.Sprintf("= %q", f.DefValue)
+			case f.DefValue == "":
 				eq = ""
-			} else if f.Name == "rxdir" {
-				eq = "= $HOME/.rx"
 			}
 			fmt.Fprintf(w, "%s%s%s\t%s\t   %s\n", prefix, dash, f.Name, eq, f.Usage)
 		}
@@ -114,11 +117,12 @@ var usageTemplate = `rx is a command-line dependency management tool for Go proj
 Usage:
 ` + generalHelp
 
-var helpTemplate = `Usage: rx {{.Name}} [options] {{.Usage}}
-{{flags 2 .}}
+var helpTemplate = `Usage: rx {{.Name}} [options]{{with .Usage}} {{.}}{{end}}{{if .Abbrev}}
+       rx {{.Abbrev}} [options]{{with .Usage}} {{.}}{{end}}
+{{end}}{{flags 2 .}}
 {{.Summary}}
 {{if .Help}}
-{{.Help}}{{end}}
+{{.Help | trim}}{{end}}
 `
 
 var docTemplate = `/*
@@ -139,8 +143,8 @@ The general usage is:
 ` + generalHelp + `
 
 See below for a description of the various sub-commands understood by rx.
-
-{{range .}}{{.Name | title}}
+{{range .}}
+{{.Name | title}}
 
 {{.Summary | trim}}
 
@@ -152,5 +156,3 @@ Usage:
 */
 package main
 `
-
-
