@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"kylelemons.net/go/rx/graph"
 )
@@ -16,12 +17,18 @@ var (
 	rescan = flag.Bool("rescan", false, "Force a rescan of repositories")
 	rxDir  = flag.String("rxdir", filepath.Join(os.Getenv("HOME"), ".rx"), "Directory in which to save state")
 	asave  = flag.Bool("autosave", true, "Automatically save dependency graph (disable for concurrent runs)")
+	maxAge = flag.Duration("max-age", 1*time.Hour, "Nominal amount of time before a rescan is done")
 )
 
 var Deps = graph.New()
 
 func Scan() error {
-	if len(Deps.Repository) > 0 && !*rescan {
+	var (
+		stale = time.Since(Deps.LastScan) > *maxAge
+		empty = len(Deps.Repository) == 0
+		force = *rescan
+	)
+	if !stale && !empty && !force {
 		return nil
 	}
 	return Deps.Scan("all")
