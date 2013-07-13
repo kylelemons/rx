@@ -1,0 +1,23 @@
+Commands:
+
+`rx fetch`
+	Poll for the available updates to repositories
+
+	This should be able to use commands like
+		git ls-remote origin master
+		git show-ref origin/master
+	to see whether there are updates available for
+	repositories.  If there are,
+		git fetch origin
+	and friends can pull down the new refs.
+
+`rx update`
+	Try to update a given package.
+
+`rx cabinet`
+	The equivalent of `git stash save` and friends.
+
+	Ideas for cabinet file format:
+		- Use gob (nicely forward compatible)
+		- Store dependent repos and their hash
+		- Store more?
