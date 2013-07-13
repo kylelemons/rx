@@ -92,21 +92,34 @@ func cabFunc(cmd *Command, args ...string) {
 
 // A CabFile is the data structure stored in a cabinet file.
 type CabFile struct {
-	Repo    string           // The import path prefix covered by this cabinet (usually import/path/...)
-	Created time.Time        // The time the cabinet was created
-	Head    string           // The hash of the repository at which this cabinet was created
-	Deps    []*CabDependency // The dependencies of this package
+	Repo    string         // The import path prefix covered by this cabinet (usually import/path/...)
+	Created time.Time      // The time the cabinet was created
+	Head    string         // The hash of the repository at which this cabinet was created
+	Deps    []*RepoVersion // The dependencies of this package
 }
 
-// A CabDependency stores information about a dependency of a repository.
-type CabDependency struct {
+// A RepoVersion stores information about a dependency of a repository.
+type RepoVersion struct {
 	Pattern  string   // The pattern required to scan for updates
 	Packages []string // Try `go get -d` on these in order until one succeeds
 	Head     string   // The hash of the repository to use after installation
 }
 
+// NewRepoVersion creates a repo version object suitable for storing into cabinets, etc.
+func NewRepoVersion(repo *graph.Repository) (*RepoVersion, error) {
+	head, err := repo.Head()
+	if err != nil {
+		return nil, fmt.Errorf("get %s head: %s", repo, err)
+	}
+	return &RepoVersion{
+		Pattern:  repo.String(),
+		Packages: repo.Packages,
+		Head:     head,
+	}, nil
+}
+
 // Apply attempts to locate the repository and pin it to the head version.
-func (dep *CabDependency) Apply() error {
+func (dep *RepoVersion) Apply() error {
 	// Find the repository
 	var repo *graph.Repository
 	for _, pkg := range dep.Packages {
@@ -178,15 +191,11 @@ func buildCabinet(repo *graph.Repository, id string) error {
 		return fmt.Errorf("build: scan dependencies: %s", err)
 	}
 	for _, dep := range deps {
-		head, err := dep.Head()
+		rv, err := NewRepoVersion(dep)
 		if err != nil {
-			return fmt.Errorf("build: get %s head: %s", err)
+			return fmt.Errorf("build: %s", err)
 		}
-		data.Deps = append(data.Deps, &CabDependency{
-			Pattern:  dep.String(),
-			Packages: dep.Packages,
-			Head:     head,
-		})
+		data.Deps = append(data.Deps, rv)
 	}
 
 	if *cabTest {

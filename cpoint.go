@@ -1,6 +1,16 @@
 package main
 
-import ()
+import (
+	"encoding/gob"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"time"
+
+	userpkg "os/user"
+)
 
 var cpointCmd = &Command{
 	Name:    "checkpoint",
@@ -18,10 +28,11 @@ comment and a global, sequential ID which can be used to retrieve or delete it.`
 // commands and can be used for recursive subcommands like this, too.
 
 var (
-	cpointNum   = cpointCmd.Flag.Int("n", 15, "number of checkpoints to list (0 for all)")
-	cpointSave  = cpointCmd.Flag.String("save", "", "save a new checkpoint with the given comment")
-	cpointList  = cpointCmd.Flag.Bool("list", false, "list checkpoints")
-	cpointApply = cpointCmd.Flag.Int("apply", 0, "apply the specified checkpoint")
+	cpointNum    = cpointCmd.Flag.Int("n", 15, "number of checkpoints to list (0 for all)")
+	cpointSave   = cpointCmd.Flag.String("save", "", "save a new checkpoint with the given comment")
+	cpointList   = cpointCmd.Flag.Bool("list", false, "list checkpoints")
+	cpointApply  = cpointCmd.Flag.Int("apply", 0, "apply the specified checkpoint")
+	cpointDelete = cpointCmd.Flag.Int("delete", 0, "delete the specified checkpoint")
 )
 
 func cpointFunc(cmd *Command, args ...string) {
@@ -29,20 +40,103 @@ func cpointFunc(cmd *Command, args ...string) {
 		cmd.BadArgs("takes no arguments")
 	}
 
-	var err error
+	var data CPointFile
+
+	// Open the checkpoint file
+	filename := filepath.Join(expandRxDir(), "checkpoints")
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		cmd.Fatalf("open checkpoint file: %s", err)
+	}
+	defer file.Close()
+
+	// Read the data if possible (EOF is fine, it means there was no data)
+	if err := gob.NewDecoder(file).Decode(&data); err != nil && err != io.EOF {
+		cmd.Fatalf("decoding checkpoints: %s", err)
+	}
+
 	switch {
 	case *cpointSave != "":
-		cmd.BadArgs("--save unimplemented")
+		err = data.Save(*cpointSave)
 	case *cpointApply != 0:
 		cmd.BadArgs("--apply unimplemented")
+	case *cpointDelete != 0:
+		cmd.BadArgs("--delete unimplemented")
 	case *cpointList:
 		cmd.BadArgs("--list unimplemented")
+		return
 	default:
 		cmd.BadArgs("no mode specified")
+		return
 	}
 	if err != nil {
 		cmd.Fatalf("%s", err)
 	}
+
+	// Write the data back to the file
+	if _, err := file.Seek(0, os.SEEK_SET); err != nil {
+		cmd.Fatalf("reset file: %s", err)
+	}
+	if err := gob.NewEncoder(file).Encode(data); err != nil {
+		cmd.Fatalf("encode checkpoints: %s", err)
+	}
+
+	// Truncate the file down to the size we wrote
+	offset, err := file.Seek(0, os.SEEK_CUR)
+	if err != nil {
+		cmd.Errorf("ftell: %s", err)
+	} else if err := file.Truncate(offset); err != nil {
+		cmd.Errorf("ftrunc(%d): %s", offset, err)
+	}
+
+	log.Printf("Wrote checkpoints to %q", filename)
+}
+
+type CPointFile struct {
+	LastID      int             // Checkpoint number of last ID
+	Checkpoints map[int]*CPoint // Checkpoint data indexed by ID
+}
+
+type CPoint struct {
+	Comment  string         // Comment for this checkpoint
+	User     string         // User who created the checkpoint
+	Created  time.Time      // Creation time of the checkpoint
+	Versions []*RepoVersion // Versions of repositories at the time of the checkpoint
+}
+
+func (f *CPointFile) Save(comment string) error {
+	now := time.Now()
+
+	var versions []*RepoVersion
+	for _, repo := range Deps.Repository {
+		rv, err := NewRepoVersion(repo)
+		if err != nil {
+			return fmt.Errorf("save: %s", err)
+		}
+		versions = append(versions, rv)
+	}
+
+	user, err := userpkg.Current()
+	if err != nil {
+		user = &userpkg.User{Name: "unknown_user"}
+	}
+	host, err := os.Hostname()
+	if err != nil {
+		host = "unknown_host"
+	}
+
+	if f.Checkpoints == nil {
+		f.Checkpoints = make(map[int]*CPoint)
+	}
+
+	f.LastID++
+	f.Checkpoints[f.LastID] = &CPoint{
+		Comment:  comment,
+		User:     user.Name + "@" + host,
+		Created:  now,
+		Versions: versions,
+	}
+	return nil
 }
 
 func init() {
