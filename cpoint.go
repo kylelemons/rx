@@ -61,7 +61,7 @@ func cpointFunc(cmd *Command, args ...string) {
 	case *cpointApply != 0:
 		cmd.BadArgs("--apply unimplemented")
 	case *cpointDelete != 0:
-		cmd.BadArgs("--delete unimplemented")
+		err = data.Delete(*cpointDelete)
 	case *cpointList:
 		data.List(stdout, *cpointNum)
 		return
@@ -154,6 +154,14 @@ func (f *CPointFile) Save(comment string) error {
 		Created:  now,
 		Versions: versions,
 	}
+	return nil
+}
+
+func (f *CPointFile) Delete(id int) error {
+	if _, ok := f.Checkpoints[id]; !ok {
+		return fmt.Errorf("checkpoint %d does not exist", id)
+	}
+	delete(f.Checkpoints, id)
 	return nil
 }
 
