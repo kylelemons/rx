@@ -63,7 +63,7 @@ func cpointFunc(cmd *Command, args ...string) {
 	case *cpointDelete != 0:
 		cmd.BadArgs("--delete unimplemented")
 	case *cpointList:
-		cmd.BadArgs("--list unimplemented")
+		data.List(stdout, *cpointNum)
 		return
 	default:
 		cmd.BadArgs("no mode specified")
@@ -104,6 +104,24 @@ type CPoint struct {
 	Versions []*RepoVersion // Versions of repositories at the time of the checkpoint
 }
 
+func (f *CPointFile) List(w io.Writer, max int) {
+	const DateFormat = "2006/01/02 15:04:05 MST"
+
+	tw := tabify(w)
+	defer tw.Flush()
+
+	for id := f.LastID; id > 0 && max > 0; id-- {
+		cpoint, ok := f.Checkpoints[id]
+		if !ok {
+			continue
+		}
+
+		fmt.Fprintf(tw, "%d  \t%s  \t%s  \t%s\n",
+			id, cpoint.Created.Format(DateFormat), cpoint.User, cpoint.Comment)
+		max--
+	}
+}
+
 func (f *CPointFile) Save(comment string) error {
 	now := time.Now()
 
@@ -118,7 +136,7 @@ func (f *CPointFile) Save(comment string) error {
 
 	user, err := userpkg.Current()
 	if err != nil {
-		user = &userpkg.User{Name: "unknown_user"}
+		user = &userpkg.User{Username: "unknown_user"}
 	}
 	host, err := os.Hostname()
 	if err != nil {
@@ -132,7 +150,7 @@ func (f *CPointFile) Save(comment string) error {
 	f.LastID++
 	f.Checkpoints[f.LastID] = &CPoint{
 		Comment:  comment,
-		User:     user.Name + "@" + host,
+		User:     user.Username + "@" + host,
 		Created:  now,
 		Versions: versions,
 	}

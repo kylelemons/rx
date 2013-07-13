@@ -48,11 +48,15 @@ func init() {
 	helpCmd.Run = helpFunc
 }
 
+func tabify(w io.Writer) *tabwriter.Writer {
+	return tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+}
+
 var templateFuncs = template.FuncMap{
 	"flags": func(indent int, args ...interface{}) string {
 		b := new(bytes.Buffer)
 		prefix := strings.Repeat(" ", indent)
-		w := tabwriter.NewWriter(b, 0, 0, 1, ' ', 0)
+		w := tabify(b)
 		visit := func(f *flag.Flag) {
 			dash := "--"
 			if len(f.Name) == 1 {
