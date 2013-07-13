@@ -22,7 +22,13 @@ that it has global scope and does not run tests when saving or applying.
 
 Checkpoints are intended as lightweight ways to save state and to share state
 among multiple developers sharing an $RX_DIR.  Checkpoints are created with a
-comment and a global, sequential ID which can be used to retrieve or delete it.`,
+comment and a global, sequential ID which can be used to retrieve or delete it.
+
+Be careful when using checkpoint --apply, because this will update every
+repository that rx knows about!  They will generally wind up in a detached HEAD
+state, which may not be what you want.  See the --filter and --exclude options,
+which apply to both --save and --apply, to control what repositories are
+affected by the operations.`,
 }
 
 // TODO(kevlar): make a CommandSet mechanism that is used both for the top-level
