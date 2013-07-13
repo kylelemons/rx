@@ -133,6 +133,11 @@ var docTemplate = `/*
 The rx command is a dependency and version management system for Go projects.
 It is built on top of the go tool and utilizes the $GOPATH convention.
 
+Warning
+
+This tool is very much in flux.  Don't depend on commands, options, or
+pretty much anything else being stable yet.
+
 Installation
 
 As usual, the rx tool can be installed or upgraded via the "go" tool:
