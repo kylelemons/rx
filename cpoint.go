@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	userpkg "os/user"
@@ -28,11 +29,13 @@ comment and a global, sequential ID which can be used to retrieve or delete it.`
 // commands and can be used for recursive subcommands like this, too.
 
 var (
-	cpointNum    = cpointCmd.Flag.Int("n", 15, "number of checkpoints to list (0 for all)")
-	cpointSave   = cpointCmd.Flag.String("save", "", "save a new checkpoint with the given comment")
-	cpointList   = cpointCmd.Flag.Bool("list", false, "list checkpoints")
-	cpointApply  = cpointCmd.Flag.Int("apply", 0, "apply the specified checkpoint")
-	cpointDelete = cpointCmd.Flag.Int("delete", 0, "delete the specified checkpoint")
+	cpointNum     = cpointCmd.Flag.Int("n", 15, "number of checkpoints to list (0 for all)")
+	cpointSave    = cpointCmd.Flag.String("save", "", "save a new checkpoint with the given comment")
+	cpointList    = cpointCmd.Flag.Bool("list", false, "list checkpoints")
+	cpointApply   = cpointCmd.Flag.Int("apply", 0, "apply the specified checkpoint")
+	cpointDelete  = cpointCmd.Flag.Int("delete", 0, "delete the specified checkpoint")
+	cpointFilter  = cpointCmd.Flag.String("filter", ".*", "regular expression to filter saved/restored repositories")
+	cpointExclude = cpointCmd.Flag.String("exclude", "^$", "regular expression to exclude saved/restored repositories")
 )
 
 func cpointFunc(cmd *Command, args ...string) {
@@ -55,11 +58,21 @@ func cpointFunc(cmd *Command, args ...string) {
 		cmd.Fatalf("decoding checkpoints: %s", err)
 	}
 
+	filter, err := regexp.Compile(*cpointFilter)
+	if err != nil {
+		cmd.BadArgs("--filter: %s", err)
+	}
+
+	exclude, err := regexp.Compile(*cpointExclude)
+	if err != nil {
+		cmd.BadArgs("--exclude: %s", err)
+	}
+
 	switch {
 	case *cpointSave != "":
-		err = data.Save(*cpointSave)
+		err = data.Save(*cpointSave, filter, exclude)
 	case *cpointApply != 0:
-		cmd.BadArgs("--apply unimplemented")
+		err = data.Apply(*cpointApply, filter, exclude)
 	case *cpointDelete != 0:
 		err = data.Delete(*cpointDelete)
 	case *cpointList:
@@ -116,13 +129,14 @@ func (f *CPointFile) List(w io.Writer, max int) {
 			continue
 		}
 
-		fmt.Fprintf(tw, "%d  \t%s  \t%s  \t%s\n",
-			id, cpoint.Created.Format(DateFormat), cpoint.User, cpoint.Comment)
+		fmt.Fprintf(tw, "%d  \t%s  \t%s  \t%d\trepos  \t%s\n",
+			id, cpoint.Created.Format(DateFormat), cpoint.User,
+			len(cpoint.Versions), cpoint.Comment)
 		max--
 	}
 }
 
-func (f *CPointFile) Save(comment string) error {
+func (f *CPointFile) Save(comment string, filter, exclude *regexp.Regexp) error {
 	now := time.Now()
 
 	var versions []*RepoVersion
@@ -130,6 +144,9 @@ func (f *CPointFile) Save(comment string) error {
 		rv, err := NewRepoVersion(repo)
 		if err != nil {
 			return fmt.Errorf("save: %s", err)
+		}
+		if !filter.MatchString(rv.Pattern) || exclude.MatchString(rv.Pattern) {
+			continue
 		}
 		versions = append(versions, rv)
 	}
@@ -153,6 +170,34 @@ func (f *CPointFile) Save(comment string) error {
 		User:     user.Username + "@" + host,
 		Created:  now,
 		Versions: versions,
+	}
+	log.Printf("Created checkpoint %d with %d repository versions", f.LastID, len(versions))
+	return nil
+}
+
+func (f *CPointFile) Apply(id int, filter, exclude *regexp.Regexp) error {
+	cpoint, ok := f.Checkpoints[id]
+	if !ok {
+		return fmt.Errorf("checkpoint %d does not exist", id)
+	}
+
+	log.Printf("Restoring checkpoint %d: %s", id, cpoint.Comment)
+	log.Printf("Checkpoint was created by %s at %s", cpoint.User, cpoint.Created)
+
+	var failed int
+	for _, rv := range cpoint.Versions {
+		log.Printf("- %s", rv.Pattern)
+		if !filter.MatchString(rv.Pattern) || exclude.MatchString(rv.Pattern) {
+			log.Printf("  SKIP")
+			continue
+		}
+		if err := rv.Apply(); err != nil {
+			log.Printf("  Failed: %s", err)
+			failed++
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("apply: failed to pin %d versions", failed)
 	}
 	return nil
 }
