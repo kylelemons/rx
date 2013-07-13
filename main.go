@@ -18,6 +18,7 @@ var commands = []*Command{
 	listCmd,
 	tagsCmd,
 	preCmd,
+	cabCmd,
 }
 
 func main() {
