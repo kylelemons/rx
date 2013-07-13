@@ -10,11 +10,21 @@ import (
 	"os/exec"
 	"sort"
 	"sync"
+	"time"
 )
 
 // Scan scans the named packages and updats their records in the dependency
 // graph.  To scan everything, use Scan("all").
 func (g *Graph) Scan(target string) error {
+	start := time.Now()
+	defer func() {
+		log.Printf("Scan took %s", time.Since(start))
+	}()
+
+	// Set the time first so that no changes to the scanned directories
+	// will have happened before LastScan.
+	g.LastScan = start
+
 	list := exec.Command("go", "list", "-e", "-json", target)
 	list.Stderr = os.Stderr
 	js, err := list.Output()

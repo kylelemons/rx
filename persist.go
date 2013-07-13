@@ -6,35 +6,51 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"kylelemons.net/go/rx/graph"
 )
 
 const rxFileVersion = 1
 
+func defEnv(name, def string) string {
+	if os.Getenv(name) == "" {
+		return def
+	}
+	return "$" + name
+}
+
 var (
 	rescan = flag.Bool("rescan", false, "Force a rescan of repositories")
-	rxDir  = flag.String("rxdir", filepath.Join(os.Getenv("HOME"), ".rx"), "Directory in which to save state")
+	rxDir  = flag.String("rxdir", defEnv("RX_DIR", filepath.Join("$HOME", ".rx")), "Directory in which to save state")
 	asave  = flag.Bool("autosave", true, "Automatically save dependency graph (disable for concurrent runs)")
+	maxAge = flag.Duration("max-age", 1*time.Hour, "Nominal amount of time before a rescan is done")
 )
 
 var Deps = graph.New()
 
+func expandRxDir() string {
+	return os.ExpandEnv(*rxDir)
+}
+
 func Scan() error {
-	if len(Deps.Repository) > 0 && !*rescan {
+	var (
+		stale = time.Since(Deps.LastScan) > *maxAge
+		empty = len(Deps.Repository) == 0
+		force = *rescan
+	)
+	if !stale && !empty && !force {
 		return nil
 	}
 	return Deps.Scan("all")
 }
-
-// TODO(kevlar): environment variable RX_DIR or something
 
 func Load() {
 	if *rescan {
 		return
 	}
 
-	graphFile := filepath.Join(*rxDir, "graph")
+	graphFile := filepath.Join(expandRxDir(), "graph")
 
 	// Open the graphFile
 	repo, err := os.Open(graphFile)
@@ -71,13 +87,13 @@ func Save() {
 	}
 
 	// Make sure the directory exists
-	if err := os.MkdirAll(*rxDir, 0750); err != nil {
+	if err := os.MkdirAll(expandRxDir(), 0750); err != nil {
 		log.Printf("Save: unable to create rxdir: %s", err)
 		return
 	}
 
 	// Open the graphFile
-	graphFile := filepath.Join(*rxDir, "graph")
+	graphFile := filepath.Join(expandRxDir(), "graph")
 	repo, err := os.Create(graphFile)
 	if err != nil {
 		log.Printf("Save: error opening .rx/repo file: %s", err)

@@ -3,6 +3,7 @@ package graph
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // Graph stores the dependency graph of packages.
@@ -18,6 +19,9 @@ type Graph struct {
 
 	// Repository["repo/path"] = &Repository{...}
 	Repository map[string]*Repository
+
+	// When this graph was last updated.
+	LastScan time.Time
 }
 
 func New() *Graph {

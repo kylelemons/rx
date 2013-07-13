@@ -2,6 +2,11 @@
 The rx command is a dependency and version management system for Go projects.
 It is built on top of the go tool and utilizes the $GOPATH convention.
 
+Warning
+
+This tool is very much in flux.  Don't depend on commands, options, or
+pretty much anything else being stable yet.
+
 Installation
 
 As usual, the rx tool can be installed or upgraded via the "go" tool:
@@ -16,16 +21,19 @@ The general usage is:
     rx [<options>] [<subcommand> [<suboptions>] [<arguments> ...]]
 
 Options:
-  --autosave = true         Automatically save dependency graph (disable for concurrent runs)
-  --rescan   = false        Force a rescan of repositories
-  --rxdir    = $HOME/.rx    Directory in which to save state
-  -v         = false        Turn on verbose logging
+  --autosave = true           Automatically save dependency graph (disable for concurrent runs)
+  --max-age  = 1h0m0s         Nominal amount of time before a rescan is done
+  --rescan   = false          Force a rescan of repositories
+  --rxdir    = "$HOME/.rx"    Directory in which to save state
+  -v         = false          Turn on verbose logging
 
 Commands:
     help       Help on the rx command and subcommands.
     list       List recognized repositories.
     tags       List known repository tags.
     prescribe  Update the repository to the given tag/rev.
+    cabinet    Save, list, or restore dependency snapshots.
+    checkpoint Save, list, or restore global repository version snapshots.
 
 Use "rx help <command>" for more help with a command.
 
@@ -43,6 +51,7 @@ Options:
   --godoc = false    Dump the godoc output for the command(s)
 
 
+
 List Command
 
 List recognized repositories.
@@ -51,7 +60,7 @@ Usage:
     rx list [<filter>]
 
 Options:
-  -f                List output format
+  -f     = ""       List output format
   --long = false    Use long output format
 
 The list command scans all available packages and collects information about
@@ -76,6 +85,7 @@ If you specify --long, the format will be:
           {{.}}{{end}}
   {{end}}
   {{end}}
+
 Tags Command
 
 List known repository tags.
@@ -85,7 +95,7 @@ Usage:
 
 Options:
   --down = false    Only show downgrades
-  -f                tags output format
+  -f     = ""       tags output format
   --long = false    Use long output format
   --up   = false    Only show updates (overrides --down)
 
@@ -98,6 +108,7 @@ template invocation is an (rx/graph) TagList, and the default format is:
 
   {{range .}}{{.Rev}} {{.Name}}
   {{end}}
+
 Prescribe Command
 
 Update the repository to the given tag/rev.
@@ -124,6 +135,72 @@ in the updated repository.  These steps can be disabled via flags such as
 
 By default, this will not link and install affected binaries; to turn this
 behavior on, see the --link option.
+
+Cabinet Command
+
+Save, list, or restore dependency snapshots.
+
+Usage:
+    rx cabinet <repo> [<id>]
+
+Options:
+  --build = false    create a new cabinet
+  --dump  = false    list the contents of the specified cabinet
+  --list  = true     list matching cabinet files (the default)
+  --open  = false    open the specified cabinet
+  --test  = true     test package before saving and after loading cabinet
+
+The cabinet command saves dependency information for the given
+repository in a file within it.  The <repo> can be any piece of the
+repository root path, as long as it is unique.  The <tag> is anything
+understood by the underlying version control system as a commit, usually a
+tag, branch, or commit.  When saving, the <id> will override the default
+(based on the date) and when opening the <id> is the ID (or a unique
+substring) of the cabinet to open.
+
+Cabinets are currently stored in the repository itself named as follows:
+    .rx/cabinet-YYYYMMDD-HHMMSS
+
+If the <id> is specified for --build, it will override the date-based portion
+of the cabinet name.  If a cabinet already exists with the name (even if it is
+a date-based name) it will not be overwritten.
+
+Unless --test=false is specified, the packages in the repository will be tested
+before a cabinet is created and after a cabinet is restored.  If the test
+before creation fails, the cabinet will not be created.  If the test after
+restoration fails, the repositories will be reverted to their original
+revisions.
+
+The cabinet format is still in flux.
+
+Checkpoint Command
+
+Save, list, or restore global repository version snapshots.
+
+Usage:
+    rx checkpoint 
+
+Options:
+  --apply   = 0        apply the specified checkpoint
+  --delete  = 0        delete the specified checkpoint
+  --exclude = "^$"     regular expression to exclude saved/restored repositories
+  --filter  = ".*"     regular expression to filter saved/restored repositories
+  --list    = false    list checkpoints
+  -n        = 15       number of checkpoints to list (0 for all)
+  --save    = ""       save a new checkpoint with the given comment
+
+The checkpoint command is similar to the cabinet command, except
+that it has global scope and does not run tests when saving or applying.
+
+Checkpoints are intended as lightweight ways to save state and to share state
+among multiple developers sharing an $RX_DIR.  Checkpoints are created with a
+comment and a global, sequential ID which can be used to retrieve or delete it.
+
+Be careful when using checkpoint --apply, because this will update every
+repository that rx knows about!  They will generally wind up in a detached HEAD
+state, which may not be what you want.  See the --filter and --exclude options,
+which apply to both --save and --apply, to control what repositories are
+affected by the operations.
 
 */
 package main
