@@ -74,7 +74,7 @@ func cabFunc(cmd *Command, args ...string) {
 		}
 		err = buildCabinet(repo, id)
 	case *cabOpen:
-		cmd.Fatalf("--open: unimplemented")
+		err = openCabinet(cmd, repo, id)
 	case *cabDump:
 		if id == "" {
 			cmd.BadArgs("must specify <id> to dump")
@@ -103,6 +103,63 @@ type CabDependency struct {
 	Pattern  string   // The pattern required to scan for updates
 	Packages []string // Try `go get -d` on these in order until one succeeds
 	Head     string   // The hash of the repository to use after installation
+}
+
+// Apply attempts to locate the repository and pin it to the head version.
+func (dep *CabDependency) Apply() error {
+	// Find the repository
+	var repo *graph.Repository
+	for _, pkg := range dep.Packages {
+		// Make sure the package is installed and up-to-date
+		get := exec.Command("go", "get", "-d", pkg)
+		get.Dir = os.TempDir()
+		get.Stdout = os.Stdout
+		get.Stderr = os.Stderr
+		if err := get.Run(); err != nil {
+			continue
+		}
+
+		// Scan for new packages
+		if err := Deps.Scan(dep.Pattern); err != nil {
+			continue
+		}
+
+		// See if we found the package we wanted
+		p, ok := Deps.Package[pkg]
+		if !ok {
+			continue
+		}
+
+		// Get the repository
+		r, ok := Deps.Repository[p.RepoRoot]
+		if !ok {
+			continue
+		}
+
+		repo = r
+		break
+	}
+	if repo == nil {
+		return fmt.Errorf("apply(%q@%q): unable to locate repository", dep.Pattern, dep.Head)
+	}
+
+	// Get fallback in case the update fails
+	fallback, err := repo.Head()
+	if err != nil {
+		return fmt.Errorf("apply(%q@%q): unable to determine fallback version", dep.Pattern, dep.Head)
+	}
+
+	// Pin the version
+	if err := repo.ToRev(dep.Head); err != nil {
+		if ferr := repo.ToRev(fallback); ferr != nil {
+			return fmt.Errorf("apply(%q): pin(%q) [%s] and fallback(%q) [%s] failed",
+				dep.Pattern, dep.Head, err, fallback, ferr)
+		}
+		return fmt.Errorf("apply(%q@%q): pin failed: %s", dep.Pattern, dep.Head, err)
+	}
+
+	log.Printf("Pinned %s @ %s", dep.Pattern, dep.Head)
+	return nil
 }
 
 func buildCabinet(repo *graph.Repository, id string) error {
@@ -192,6 +249,52 @@ func listCabinetFiles(repo *graph.Repository, filter string) ([]string, error) {
 	return matches, nil
 }
 
+func loadCabinet(repo *graph.Repository, id string) (string, *CabFile, error) {
+	files, err := listCabinetFiles(repo, id)
+	if err != nil {
+		return "", nil, fmt.Errorf("list: %s", err)
+	}
+	switch cnt := len(files); {
+	case cnt == 0:
+		return "", nil, fmt.Errorf("no matching cabinet files found")
+	case cnt > 1:
+		return "", nil, fmt.Errorf("non-unique id pattern %q (matched %d cabinets)", id, cnt)
+	}
+	filename := files[0]
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return filename, nil, fmt.Errorf("open cabinet: %s", err)
+	}
+
+	data := new(CabFile)
+	if err := gob.NewDecoder(file).Decode(data); err != nil {
+		return filename, nil, fmt.Errorf("decode cabinet: %s", err)
+	}
+	return filename, data, nil
+}
+
+func openCabinet(cmd *Command, repo *graph.Repository, id string) error {
+	filename, data, err := loadCabinet(repo, id)
+	if err != nil {
+		return fmt.Errorf("open: %s", err)
+	}
+
+	var errors int
+	for _, dep := range data.Deps {
+		if err := dep.Apply(); err != nil {
+			errors++
+			cmd.Errorf("open: %s", err)
+		}
+	}
+	if errors > 0 {
+		return fmt.Errorf("open: %d repositories could not be pinned", errors)
+	}
+
+	log.Printf("Opened cabinet %q", filename)
+	return nil
+}
+
 func listCabinets(repo *graph.Repository, id string) error {
 	files, err := listCabinetFiles(repo, id)
 	if err != nil {
@@ -205,26 +308,9 @@ func listCabinets(repo *graph.Repository, id string) error {
 }
 
 func dumpCabinet(repo *graph.Repository, id string) error {
-	files, err := listCabinetFiles(repo, id)
+	_, data, err := loadCabinet(repo, id)
 	if err != nil {
-		return fmt.Errorf("dump: list: %s", err)
-	}
-	switch cnt := len(files); {
-	case cnt == 0:
-		return fmt.Errorf("dump: no matching cabinet files found")
-	case cnt > 1:
-		return fmt.Errorf("dump: non-unique id pattern %q (matched %d cabinets)", id, cnt)
-	}
-	filename := files[0]
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("dump: open cabinet: %s", err)
-	}
-
-	data := new(CabFile)
-	if err := gob.NewDecoder(file).Decode(data); err != nil {
-		return fmt.Errorf("dump: decode cabinet: %s", err)
+		return fmt.Errorf("dump: %s", err)
 	}
 
 	render(stdout, cabDumpTemplate, data)

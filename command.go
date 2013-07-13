@@ -18,6 +18,8 @@ type Command struct {
 
 	Summary string // The short description of the command (short sentence)
 	Help    string // The detailed command information (multiple paragraphs, etc)
+
+	Exit int // Exit code
 }
 
 func (c *Command) Exec(args []string) {
@@ -25,6 +27,7 @@ func (c *Command) Exec(args []string) {
 		helpFunc(c, c.Name)
 	}
 	c.Flag.Parse(args)
+
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(fatal); ok {
@@ -33,7 +36,12 @@ func (c *Command) Exec(args []string) {
 			panic(r)
 		}
 	}()
+
 	c.Run(c, c.Flag.Args()...)
+
+	if c.Exit != 0 {
+		os.Exit(c.Exit)
+	}
 }
 
 func (c *Command) BadArgs(errFormat string, args ...interface{}) {
@@ -45,6 +53,9 @@ func (c *Command) BadArgs(errFormat string, args ...interface{}) {
 // Errorf prints out a formatted error with the right prefixes.
 func (c *Command) Errorf(errFormat string, args ...interface{}) {
 	fmt.Fprintf(stdout, c.Name+": error: "+errFormat+"\n", args...)
+	if c.Exit == 0 {
+		c.Exit = 1
+	}
 }
 
 // Fatalf is like Errorf except the stack unwinds up to the Exec call before
