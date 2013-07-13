@@ -2,6 +2,11 @@
 The rx command is a dependency and version management system for Go projects.
 It is built on top of the go tool and utilizes the $GOPATH convention.
 
+Warning
+
+This tool is very much in flux.  Don't depend on commands, options, or
+pretty much anything else being stable yet.
+
 Installation
 
 As usual, the rx tool can be installed or upgraded via the "go" tool:
@@ -176,10 +181,13 @@ Usage:
     rx checkpoint 
 
 Options:
-  --apply = 0        apply the specified checkpoint
-  --list  = false    list checkpoints
-  -n      = 15       number of checkpoints to list (0 for all)
-  --save  = ""       save a new checkpoint with the given comment
+  --apply   = 0        apply the specified checkpoint
+  --delete  = 0        delete the specified checkpoint
+  --exclude = "^$"     regular expression to exclude saved/restored repositories
+  --filter  = ".*"     regular expression to filter saved/restored repositories
+  --list    = false    list checkpoints
+  -n        = 15       number of checkpoints to list (0 for all)
+  --save    = ""       save a new checkpoint with the given comment
 
 The checkpoint command is similar to the cabinet command, except
 that it has global scope and does not run tests when saving or applying.
@@ -187,6 +195,12 @@ that it has global scope and does not run tests when saving or applying.
 Checkpoints are intended as lightweight ways to save state and to share state
 among multiple developers sharing an $RX_DIR.  Checkpoints are created with a
 comment and a global, sequential ID which can be used to retrieve or delete it.
+
+Be careful when using checkpoint --apply, because this will update every
+repository that rx knows about!  They will generally wind up in a detached HEAD
+state, which may not be what you want.  See the --filter and --exclude options,
+which apply to both --save and --apply, to control what repositories are
+affected by the operations.
 
 */
 package main
