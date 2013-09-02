@@ -28,9 +28,10 @@ var preCmd = &Command{
 	Usage:   "<repo> <tag>",
 	Summary: "Update the repository to the given tag/rev.",
 	Help: `The prescribe command updates the repository to the named tag or
-revision.  The <repo> can be any piece of the repository root path, as long as
-it is unique.  The <tag> is anything understood by the underlying version
-control system as a commit, usually a tag, branch, or commit.
+revision.  The <repo> can be a full repository path, the last element of a
+repository path, or any substring as long as it is unique.  The <tag> is
+anything understood by the underlying version control system as a commit,
+usually a tag, branch, or commit.
 
 After updating, prescribe will test, build, and the install each package
 in the updated repository.  These steps can be disabled via flags such as

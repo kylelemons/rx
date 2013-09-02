@@ -23,8 +23,9 @@ var tagsCmd = &Command{
 	Usage:   "<repo>",
 	Summary: "List known repository tags.",
 	Help: `The tags command scans the specified repository and lists
-information about its tags.  The <repo> can be any piece of the repository root
-path, as long as it is unique.
+information about its tags.  The <repo> can be a full repository path, the last
+element of a repository path, or any substring of the path as long as it is
+unique.
 
 The -f option takes a template as a format.  The data passed into the
 template invocation is an (rx/graph) TagList, and the default format is:
