@@ -16,6 +16,7 @@ package graph
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -51,6 +52,20 @@ func New() *Graph {
 // If a unique repository is found it is returned, an error otherwise.
 func (g *Graph) FindRepo(key string) (*Repository, error) {
 	var found *Repository
+	// Try exact match first
+	for path, repo := range g.Repository {
+		if path == key || filepath.Base(path) == key {
+			if found != nil {
+				return nil, fmt.Errorf("non-unique repository specifier %q", key)
+			}
+			found = repo
+		}
+	}
+	if found != nil {
+		return found, nil
+	}
+
+	// ... then generic substring match
 	for path, repo := range g.Repository {
 		if strings.Contains(path, key) {
 			if found != nil {
