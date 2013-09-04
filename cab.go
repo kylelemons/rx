@@ -200,7 +200,7 @@ func buildCabinet(repo *graph.Repository, id string) error {
 		Created: time.Now(),
 		Head:    head,
 	}
-	deps, err := Deps.RepoDeps(repo)
+	deps, err := Deps.RepoDepTree(repo)
 	if err != nil {
 		return fmt.Errorf("build: scan dependencies: %s", err)
 	}
