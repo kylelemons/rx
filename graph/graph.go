@@ -80,15 +80,7 @@ func (g *Graph) FindRepo(key string) (*Repository, error) {
 	return found, nil
 }
 
-func (g *Graph) traceDeps(repo *Repository, through map[string]map[string]bool) ([]*Repository, error) {
-	roots := map[string]bool{}
-	for _, ipath := range repo.Packages {
-		for dep := range through[ipath] {
-			if pkg, ok := g.Package[dep]; ok && pkg.RepoRoot != repo.Root {
-				roots[pkg.RepoRoot] = true
-			}
-		}
-	}
+func (g *Graph) fetchRepos(roots map[string]bool) ([]*Repository, error) {
 	repos := make([]*Repository, 0, len(roots))
 	for root := range roots {
 		repo, ok := g.Repository[root]
@@ -100,16 +92,63 @@ func (g *Graph) traceDeps(repo *Repository, through map[string]map[string]bool) 
 	return repos, nil
 }
 
+func (g *Graph) traceRepos(repo *Repository, through map[string]map[string]bool) ([]*Repository, error) {
+	roots := map[string]bool{}
+	for _, ipath := range repo.Packages {
+		for dep := range through[ipath] {
+			if pkg, ok := g.Package[dep]; ok && pkg.RepoRoot != repo.Root {
+				roots[pkg.RepoRoot] = true
+			}
+		}
+	}
+	return g.fetchRepos(roots)
+}
+
+func (g *Graph) recursiveTracing(repo *Repository, through map[string]map[string]bool, roots map[string]bool) error {
+	repos, err := g.traceRepos(repo, through)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range repos {
+		roots[r.Root] = true
+		if err := g.recursiveTracing(r, through, roots); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (g *Graph) traceAllRepos(repo *Repository, through map[string]map[string]bool) ([]*Repository, error) {
+	roots := map[string]bool{}
+	if err := g.recursiveTracing(repo, through, roots); err != nil {
+		return nil, err
+	}
+	return g.fetchRepos(roots)
+}
+
 // RepoDeps returns a list of the repositories which contain packages
 // upon which packages in the given repository depend.
 func (g *Graph) RepoDeps(repo *Repository) ([]*Repository, error) {
-	return g.traceDeps(repo, g.DependsOn)
+	return g.traceRepos(repo, g.DependsOn)
+}
+
+// RepoDepTree returns a list of the repositories which contain packages
+// upon which packages in the given repository depend, recursively.
+func (g *Graph) RepoDepTree(repo *Repository) ([]*Repository, error) {
+	return g.traceAllRepos(repo, g.DependsOn)
 }
 
 // RepoUsers returns a list of the repositories which contain packages
 // which depend on packages in the given repository.
 func (g *Graph) RepoUsers(repo *Repository) ([]*Repository, error) {
-	return g.traceDeps(repo, g.UsedBy)
+	return g.traceRepos(repo, g.UsedBy)
+}
+
+// RepoUserTree returns a list of the repositories which contain packages
+// which depend on packages in the given repository, recursively.
+func (g *Graph) RepoUserTree(repo *Repository) ([]*Repository, error) {
+	return g.traceAllRepos(repo, g.UsedBy)
 }
 
 // addImport adds both directions of an import relationship to the graph.
